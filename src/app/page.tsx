@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 const stack = [
   { name: "Next.js 16", note: "App Router, React 19, серверные компоненты" },
   { name: "PostgreSQL 17", note: "локально в Docker, на проде — Neon / Vercel Postgres" },
-  { name: "Drizzle ORM", note: "типизированные запросы + drizzle-kit для миграций" },
+  { name: "Prisma 7", note: "декларативная схема, миграции, Prisma Studio" },
   { name: "Better Auth", note: "вход по почте и паролю, сессии хранятся в БД" },
   { name: "Tailwind CSS v4", note: "стили без конфига, темы через CSS-переменные" },
 ];

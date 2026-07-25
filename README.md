@@ -1,4 +1,4 @@
-# Next.js Starter — Postgres + Drizzle + Better Auth + Tailwind
+# Next.js Starter — Postgres + Prisma + Better Auth + Tailwind
 
 Болванка для быстрого старта: авторизация по почте и паролю, база в Docker для локальной разработки, деплой на Vercel.
 
@@ -8,14 +8,14 @@
 | ----------- | ---------------------------------------------------------------- |
 | Фреймворк   | Next.js 16 (App Router, Turbopack), React 19                      |
 | База        | PostgreSQL 17 — локально в Docker, на проде Neon/Vercel Postgres  |
-| ORM         | Drizzle ORM + drizzle-kit (миграции), драйвер `pg`                |
+| ORM         | Prisma 7 + driver adapter `@prisma/adapter-pg`                    |
 | Авторизация | Better Auth — email + пароль, сессии в БД                         |
 | Стили       | Tailwind CSS v4                                                   |
 
 ## Быстрый старт
 
 ```bash
-# 1. Зависимости
+# 1. Зависимости (postinstall сам сгенерирует клиент Prisma)
 npm install
 
 # 2. Переменные окружения
@@ -40,21 +40,26 @@ npm run dev
 
 ## Скрипты
 
-| Команда               | Что делает                                              |
-| --------------------- | ------------------------------------------------------- |
-| `npm run dev`         | dev-сервер                                              |
-| `npm run build`       | production-сборка                                       |
-| `npm run db:up`       | поднять Postgres в Docker                               |
-| `npm run db:down`     | остановить контейнер (данные остаются в volume)         |
-| `npm run db:reset`    | снести том с данными и поднять чистую базу              |
-| `npm run db:generate` | сгенерировать SQL-миграцию из `src/db/schema.ts`        |
-| `npm run db:migrate`  | применить миграции                                      |
-| `npm run db:push`     | залить схему в базу без файла миграции (только для dev) |
-| `npm run db:studio`   | Drizzle Studio — веб-интерфейс к базе                   |
+| Команда               | Что делает                                                    |
+| --------------------- | ------------------------------------------------------------- |
+| `npm run dev`         | dev-сервер                                                    |
+| `npm run build`       | `prisma generate` + production-сборка                         |
+| `npm run db:up`       | поднять Postgres в Docker                                     |
+| `npm run db:down`     | остановить контейнер (данные остаются в volume)               |
+| `npm run db:reset`    | снести том с данными и поднять чистую базу                    |
+| `npm run db:generate` | пересобрать клиент Prisma из схемы                            |
+| `npm run db:migrate`  | создать и применить миграцию (dev)                            |
+| `npm run db:deploy`   | применить готовые миграции без генерации новых (прод/CI)      |
+| `npm run db:push`     | залить схему в базу без файла миграции (только для прототипов)|
+| `npm run db:studio`   | Prisma Studio — веб-интерфейс к базе                          |
 
 ## Структура
 
 ```
+prisma/
+├─ schema.prisma                   схема БД (модели + индексы)
+└─ migrations/                     версионированные SQL-миграции
+generated/prisma/                  клиент Prisma (в git не хранится)
 src/
 ├─ app/
 │  ├─ api/auth/[...all]/route.ts   все эндпоинты Better Auth
@@ -66,14 +71,14 @@ src/
 │  ├─ auth-form.tsx                форма входа/регистрации (клиент)
 │  ├─ sign-out-button.tsx
 │  └─ site-header.tsx              шапка, знает про сессию
-├─ db/
-│  ├─ index.ts                     пул соединений + инстанс Drizzle
-│  └─ schema.ts                    таблицы user, session, account, verification
+├─ dal/
+│  └─ user.ts                      слой доступа к данным: все запросы в БД
 └─ lib/
    ├─ auth.ts                      конфиг Better Auth (сервер)
    ├─ auth-client.ts               клиент Better Auth (браузер)
+   ├─ prisma.ts                    инстанс PrismaClient
    └─ session.ts                   getSession() / requireSession()
-drizzle/                           сгенерированные SQL-миграции
+prisma.config.ts                   конфиг Prisma CLI (читает .env.local)
 ```
 
 ## Как это работает
@@ -86,46 +91,58 @@ const session = await requireSession(); // нет сессии -> redirect на 
 
 Это надёжнее проверки в middleware/proxy: авторизация выполняется там же, где читаются данные, и её нельзя обойти прямым запросом.
 
-**Работа с базой:**
+**Запросы к базе живут в `src/dal/`**, а не в компонентах страниц:
 
 ```ts
-import { db } from "@/db";
-import { user } from "@/db/schema";
+// src/dal/user.ts
+import "server-only";
+import { prisma } from "@/lib/prisma";
 
-const users = await db.select().from(user).limit(10);
+export async function getUserById(id: string) {
+  return prisma.user.findUnique({ where: { id } });
+}
 ```
 
-**Своя таблица:** описать в `src/db/schema.ts` → `npm run db:generate` → `npm run db:migrate`.
+Когда моделей станет больше, это единственное место, которое придётся править при смене схемы. Импорт `server-only` не даст утащить подключение к базе в браузер: такой код упадёт на сборке.
+
+**Своя таблица:** описать модель в `prisma/schema.prisma` → `npm run db:migrate` → добавить запросы в `src/dal/`.
 
 Пароли хранятся хешем (scrypt) в таблице `account`, сессии — в таблице `session`; кука подписана `BETTER_AUTH_SECRET`.
 
+### Почему `@prisma/adapter-pg`
+
+Prisma 7 больше не поставляет встроенный движок запросов — подключение к базе идёт через driver adapter. Здесь это node-postgres поверх обычного пула; настройки пула (в том числе `max: 1` на serverless) — в `src/lib/prisma.ts`.
+
+### Даты
+
+Все даты объявлены как `@db.Timestamptz(3)`. Тип `timestamp` без таймзоны (умолчание Prisma) хранит «настенное» время без смещения, из-за чего момент времени уезжает, если процесс-читатель работает в другой таймзоне, чем писатель — например, локально CEST, а на Vercel UTC.
+
 ## Деплой на Vercel
 
-1. **База.** Vercel не хостит Postgres сам — заведите managed-базу: Neon (есть интеграция в маркетплейсе Vercel), Vercel Postgres или Supabase. Строка подключения должна содержать `?sslmode=require`.
+1. **База.** Vercel не хостит Postgres сам — заведите managed-базу через Storage → **Neon** (есть бесплатный тариф). Интеграция сама пропишет `DATABASE_URL`.
 
 2. **Переменные окружения** в Project Settings → Environment Variables:
 
-   | Переменная           | Значение                                                     |
-   | -------------------- | ------------------------------------------------------------ |
-   | `DATABASE_URL`       | строка подключения к managed-базе                             |
-   | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` — **отдельный**, не локальный       |
-   | `BETTER_AUTH_URL`    | боевой домен, напр. `https://myapp.vercel.app`                |
+   | Переменная           | Значение                                                     | Окружения          |
+   | -------------------- | ------------------------------------------------------------ | ------------------ |
+   | `DATABASE_URL`       | строка подключения (ставит интеграция Neon)                   | все                |
+   | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` — **отдельный**, не локальный        | все                |
+   | `BETTER_AUTH_URL`    | боевой домен, напр. `https://myapp.vercel.app`                 | только Production  |
 
-   Для Preview-деплоев `BETTER_AUTH_URL` можно не задавать — `src/lib/auth.ts` подхватит `VERCEL_URL`. Для Production домен нужно указать явно: по нему проверяется Origin запросов, и запрос с чужого домена получит `403 Invalid origin`.
+   На Preview `BETTER_AUTH_URL` задавать не нужно: `src/lib/auth.ts` подхватит `VERCEL_URL`, и каждый превью-деплой заработает на своём домене. Один адрес на все окружения приведёт к `403 Invalid origin` на превью.
 
-3. **Миграции.** Перед первым деплоем накатите их на боевую базу:
+3. **Миграции.** Клиент Prisma генерируется на билде (`postinstall` + `build`), но схему в боевой базе нужно создать:
 
    ```bash
-   DATABASE_URL="postgres://...prod..." npx drizzle-kit migrate
+   DATABASE_URL="postgres://...prod..." npx prisma migrate deploy
    ```
 
-   Либо пропишите их в сборку: `"build": "drizzle-kit migrate && next build"` — тогда миграции применяются на каждом деплое.
-
-4. Импортируйте репозиторий в Vercel и деплойте — фреймворк определится сам.
+   Для Neon берите **прямую** (unpooled) строку подключения — DDL через пул ведёт себя неожиданно. Либо пропишите деплой миграций в сборку: `"build": "prisma migrate deploy && prisma generate && next build"`.
 
 ## Что дальше
 
-- **Подтверждение почты и сброс пароля** — включить `requireEmailVerification` в `src/lib/auth.ts` и подключить отправку писем (Resend, Postmark).
-- **OAuth-провайдеры** — Better Auth добавляет GitHub/Google несколькими строками в `socialProviders`, таблица `account` под это уже готова.
+- **Rate limiting в БД.** Better Auth включает защиту от перебора в production, но хранит счётчики в памяти процесса — на serverless они теряются при каждом холодном старте. Лечится `rateLimit: { storage: "database" }` в `src/lib/auth.ts` плюс модель `RateLimit` в схеме.
+- **Подтверждение почты и сброс пароля** — включить `requireEmailVerification` и подключить отправку писем (Resend, Postmark).
+- **OAuth-провайдеры** — Better Auth добавляет GitHub/Google несколькими строками в `socialProviders`, модель `Account` под это уже готова.
+- **`error.tsx`** — сейчас при недоступной базе пользователь увидит голый 500 без интерфейса.
 - **Валидация форм** — Zod + react-hook-form.
-- **Роли и права** — плагин `admin` из Better Auth.

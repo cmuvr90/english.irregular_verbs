@@ -14,11 +14,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Next.js + Drizzle + Better Auth",
+    default: "Next.js + Prisma + Better Auth",
     template: "%s — Next.js Starter",
   },
   description:
-    "Стартовый шаблон: Next.js, Postgres, Drizzle ORM, Better Auth, Tailwind CSS",
+    "Стартовый шаблон: Next.js, Postgres, Prisma, Better Auth, Tailwind CSS",
 };
 
 export default function RootLayout({

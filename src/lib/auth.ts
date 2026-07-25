@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
-import { db, schema } from "@/db";
+import { prisma } from "@/lib/prisma";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -30,9 +30,9 @@ function getBaseURL() {
 export const auth = betterAuth({
   baseURL: getBaseURL(),
   secret: process.env.BETTER_AUTH_SECRET,
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema,
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+    transaction: true,
   }),
   emailAndPassword: {
     enabled: true,

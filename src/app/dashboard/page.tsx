@@ -1,9 +1,7 @@
-import { eq, sql } from "drizzle-orm";
 import type { Metadata } from "next";
 
 import { SiteHeader } from "@/components/site-header";
-import { db } from "@/db";
-import { user } from "@/db/schema";
+import { countUsers, getUserById } from "@/dal/user";
 import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Кабинет" };
@@ -11,16 +9,11 @@ export const metadata: Metadata = { title: "Кабинет" };
 export default async function DashboardPage() {
   const session = await requireSession();
 
-  // Пример живых запросов через Drizzle — профиль из БД и общее число юзеров.
-  const [profile] = await db
-    .select()
-    .from(user)
-    .where(eq(user.id, session.user.id))
-    .limit(1);
-
-  const [{ total }] = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(user);
+  // Запросы идут через слой доступа к данным, а не напрямую из компонента.
+  const [profile, total] = await Promise.all([
+    getUserById(session.user.id),
+    countUsers(),
+  ]);
 
   return (
     <>
