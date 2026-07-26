@@ -62,7 +62,9 @@ export function InstallPrompt() {
   };
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    // В потоке страницы, а не fixed: плавающая плашка перекрывала ссылки
+    // внизу экрана на мобильных.
+    <div className="w-full pt-4 pb-[max(0px,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl border border-line bg-card p-4 shadow-lg">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">Установить приложение</p>

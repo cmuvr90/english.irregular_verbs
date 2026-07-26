@@ -14,11 +14,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Next.js + Prisma + Better Auth",
-    template: "%s — Next.js Starter",
+    default: "Irregular Verbs — английские неправильные глаголы",
+    template: "%s — Irregular Verbs",
   },
-  description:
-    "Стартовый шаблон: Next.js, Postgres, Prisma, Better Auth, Tailwind CSS",
+  description: "Изучение английских неправильных глаголов",
   applicationName: "Irregular Verbs",
   // iOS не читает manifest полностью — режим «как приложение» включается этими метатегами.
   appleWebApp: {
