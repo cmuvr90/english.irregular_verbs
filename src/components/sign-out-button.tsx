@@ -6,7 +6,7 @@ import { useState } from "react";
 import { signOut } from "@/lib/auth-client";
 
 /** Круглая иконка-кнопка выхода для шапки кабинета. */
-export function SignOutButton() {
+export function SignOutButton({ label }: { label: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -14,8 +14,8 @@ export function SignOutButton() {
     <button
       type="button"
       disabled={pending}
-      aria-label="Выйти"
-      title="Выйти"
+      aria-label={label}
+      title={label}
       onClick={async () => {
         setPending(true);
         await signOut();

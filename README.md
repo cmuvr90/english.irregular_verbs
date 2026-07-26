@@ -63,19 +63,27 @@ generated/prisma/                  клиент Prisma (в git не хранит
 src/
 ├─ app/
 │  ├─ api/auth/[...all]/route.ts   все эндпоинты Better Auth
+│  ├─ coming-soon/page.tsx         заглушка для разделов в разработке
 │  ├─ dashboard/page.tsx           кабинет (только для авторизованных)
-│  ├─ sign-in/page.tsx             вход
+│  ├─ sign-in/page.tsx             redirect на / (вход живёт на главной)
 │  ├─ sign-up/page.tsx             регистрация
-│  └─ page.tsx                     главная
+│  ├─ manifest.ts                  манифест PWA
+│  └─ page.tsx                     стартовый экран: вход + промо
 ├─ components/
-│  ├─ auth-form.tsx                форма входа/регистрации (клиент)
-│  ├─ sign-out-button.tsx
-│  └─ site-header.tsx              шапка, знает про сессию
+│  ├─ auth-card.tsx                форма входа/регистрации (клиент)
+│  ├─ book-logo.tsx                логотип
+│  ├─ install-prompt.tsx           плашка «Установить приложение» (PWA)
+│  ├─ language-switcher.tsx        переключатель EN / BE / RU (клиент)
+│  ├─ mascot.tsx                   маскот-иллюстрация
+│  └─ sign-out-button.tsx
 ├─ dal/
 │  └─ user.ts                      слой доступа к данным: все запросы в БД
 └─ lib/
    ├─ auth.ts                      конфиг Better Auth (сервер)
    ├─ auth-client.ts               клиент Better Auth (браузер)
+   ├─ dictionaries/                переводы: en.ts (эталон), be.ts, ru.ts
+   ├─ i18n.ts                      locale текущего запроса, interpolate()
+   ├─ locale-actions.ts            Server Action: смена языка
    ├─ prisma.ts                    инстанс PrismaClient
    └─ session.ts                   getSession() / requireSession()
 prisma.config.ts                   конфиг Prisma CLI (читает .env.local)
@@ -108,6 +116,21 @@ export async function getUserById(id: string) {
 **Своя таблица:** описать модель в `prisma/schema.prisma` → `npm run db:migrate` → добавить запросы в `src/dal/`.
 
 Пароли хранятся хешем (scrypt) в таблице `account`, сессии — в таблице `session`; кука подписана `BETTER_AUTH_SECRET`.
+
+### Языки
+
+Английский (по умолчанию), беларуская, русский. Язык **не влияет на адреса страниц**: он хранится в cookie `lang`, а при первом заходе определяется из `Accept-Language` браузера.
+
+```ts
+// в любом серверном компоненте
+const locale = await getLocale();
+const dict = await getDictionary(locale);
+// dict.dashboard.todayTitle -> "Today" | "Сёння" | "Сегодня"
+```
+
+`src/lib/dictionaries/en.ts` — эталон структуры: `be.ts` и `ru.ts` типизированы как `Dictionary`, поэтому **пропущенный ключ в переводе не соберётся**. Клиентские компоненты получают нужный кусок словаря пропсами (`dict={dict.auth}`) — так в бандл не попадают все три языка сразу.
+
+**Новая строка:** добавить ключ в `en.ts` → TypeScript подскажет, где дописать `be.ts` и `ru.ts`. **Новый язык:** добавить код в `locales` (`src/lib/i18n.ts`), файл словаря и кнопку в `language-switcher.tsx`.
 
 ### Почему `@prisma/adapter-pg`
 

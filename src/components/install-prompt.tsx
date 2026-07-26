@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import type { Dictionary } from "@/lib/dictionaries/en";
+
 /**
  * Плашка «Установить приложение».
  *
@@ -21,7 +23,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 const DISMISSED_KEY = "install-prompt-dismissed";
 
-export function InstallPrompt() {
+export function InstallPrompt({ dict }: { dict: Dictionary["install"] }) {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIOSHint, setShowIOSHint] = useState(false);
 
@@ -65,16 +67,14 @@ export function InstallPrompt() {
     // В потоке страницы, а не fixed: плавающая плашка перекрывала ссылки
     // внизу экрана на мобильных.
     <div className="w-full pt-4 pb-[max(0px,env(safe-area-inset-bottom))]">
-      <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl border border-line bg-card p-4 shadow-lg">
+      <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl border border-line bg-white p-4 shadow-lg">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">Установить приложение</p>
+          <p className="text-sm font-medium">{dict.title}</p>
           {installEvent ? (
-            <p className="mt-0.5 text-xs text-subtle">
-              Со своей иконкой и в отдельном окне — как обычное приложение.
-            </p>
+            <p className="mt-0.5 text-xs text-subtle">{dict.subtitle}</p>
           ) : (
             <p className="mt-0.5 text-xs text-subtle">
-              В Safari: <ShareIcon /> «Поделиться» → «На экран “Домой”»
+              <ShareIcon /> {dict.iosHint}
             </p>
           )}
         </div>
@@ -88,16 +88,16 @@ export function InstallPrompt() {
               if (outcome === "dismissed") localStorage.setItem(DISMISSED_KEY, "1");
               setInstallEvent(null);
             }}
-            className="shrink-0 rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
           >
-            Установить
+            {dict.action}
           </button>
         )}
 
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Закрыть"
+          aria-label={dict.dismiss}
           className="shrink-0 rounded-lg p-1.5 text-subtle transition-colors hover:bg-muted"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>

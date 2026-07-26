@@ -5,34 +5,25 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { signIn, signUp } from "@/lib/auth-client";
-import { authErrorMessages } from "@/lib/auth-errors";
+import type { Dictionary } from "@/lib/dictionaries/en";
 
 type Mode = "sign-in" | "sign-up";
 
-const copy = {
-  "sign-in": {
-    submit: "Войти",
-    pending: "Входим…",
-    hint: "Нет аккаунта?",
-    hintLink: "Создать аккаунт",
-    hintHref: "/sign-up",
-  },
-  "sign-up": {
-    submit: "Создать аккаунт",
-    pending: "Создаём…",
-    hint: "Уже есть аккаунт?",
-    hintLink: "Войти",
-    hintHref: "/",
-  },
-} satisfies Record<Mode, Record<string, string>>;
-
 /** Карточка входа/регистрации стартового экрана: поля с иконками, пароль с «глазом». */
-export function AuthCard({ mode }: { mode: Mode }) {
-  const t = copy[mode];
+export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const isSignUp = mode === "sign-up";
+  const t = {
+    submit: isSignUp ? dict.signUp : dict.signIn,
+    pending: isSignUp ? dict.signingUp : dict.signingIn,
+    hint: isSignUp ? dict.haveAccount : dict.noAccount,
+    hintLink: isSignUp ? dict.signIn : dict.signUp,
+    hintHref: isSignUp ? "/" : "/sign-up",
+  };
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,21 +34,14 @@ export function AuthCard({ mode }: { mode: Mode }) {
     const email = String(form.get("email") ?? "");
     const password = String(form.get("password") ?? "");
 
-    const result =
-      mode === "sign-up"
-        ? await signUp.email({
-            email,
-            password,
-            name: String(form.get("name") ?? ""),
-          })
-        : await signIn.email({ email, password });
+    const result = isSignUp
+      ? await signUp.email({ email, password, name: String(form.get("name") ?? "") })
+      : await signIn.email({ email, password });
 
     if (result.error) {
       const code = result.error.code;
       setError(
-        (code && authErrorMessages[code]) ??
-          result.error.message ??
-          "Что-то пошло не так, попробуйте ещё раз",
+        (code && dict.errors[code]) ?? result.error.message ?? dict.errors.generic,
       );
       setPending(false);
       return;
@@ -71,22 +55,36 @@ export function AuthCard({ mode }: { mode: Mode }) {
   return (
     <div className="w-full rounded-3xl border border-line/60 bg-white p-5 shadow-[0_16px_48px_rgba(59,130,246,0.10)] sm:p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {mode === "sign-up" && (
-          <Field name="name" type="text" autoComplete="name" placeholder="Имя" required icon={<UserIcon />} />
+        {isSignUp && (
+          <Field
+            name="name"
+            type="text"
+            autoComplete="name"
+            placeholder={dict.namePlaceholder}
+            required
+            icon={<UserIcon />}
+          />
         )}
 
-        <Field name="email" type="email" autoComplete="email" placeholder="Email" required icon={<MailIcon />} />
+        <Field
+          name="email"
+          type="email"
+          autoComplete="email"
+          placeholder={dict.emailPlaceholder}
+          required
+          icon={<MailIcon />}
+        />
 
         <label className="relative block">
-          <span className="sr-only">Пароль</span>
+          <span className="sr-only">{dict.passwordPlaceholder}</span>
           <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-subtle">
             <LockIcon />
           </span>
           <input
             name="password"
             type={showPassword ? "text" : "password"}
-            autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
-            placeholder="Пароль"
+            autoComplete={isSignUp ? "new-password" : "current-password"}
+            placeholder={dict.passwordPlaceholder}
             minLength={8}
             required
             className="w-full rounded-2xl border border-line bg-transparent py-3.5 pr-12 pl-12 text-base outline-none transition-colors placeholder:text-subtle/70 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
@@ -94,7 +92,7 @@ export function AuthCard({ mode }: { mode: Mode }) {
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+            aria-label={showPassword ? dict.hidePassword : dict.showPassword}
             className="absolute inset-y-0 right-4 flex items-center text-subtle transition-colors hover:text-foreground"
           >
             {showPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -104,7 +102,7 @@ export function AuthCard({ mode }: { mode: Mode }) {
         {error && (
           <p
             role="alert"
-            className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-600 dark:text-red-400"
+            className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-600"
           >
             {error}
           </p>
@@ -121,10 +119,7 @@ export function AuthCard({ mode }: { mode: Mode }) {
 
       <p className="mt-5 text-center text-sm">
         <span className="text-subtle">{t.hint} </span>
-        <Link
-          href={t.hintHref}
-          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-        >
+        <Link href={t.hintHref} className="font-medium text-blue-600 hover:underline">
           {t.hintLink}
         </Link>
       </p>

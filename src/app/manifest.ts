@@ -4,13 +4,16 @@ import type { MetadataRoute } from "next";
  * Web App Manifest — благодаря ему сайт ставится на домашний экран телефона
  * и открывается в отдельном окне без адресной строки (display: standalone).
  * Next.js отдаёт его по /manifest.webmanifest и сам подключает в <head>.
+ *
+ * Манифест статичный и запрашивается браузером без cookie, поэтому он всегда
+ * на языке по умолчанию (английском) — интерфейс внутри приложения при этом
+ * переводится (см. src/lib/i18n.ts).
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Irregular Verbs — английские неправильные глаголы",
+    name: "Irregular Verbs — learn English irregular verbs",
     short_name: "Irregular Verbs",
-    description:
-      "Тренажёр английских неправильных глаголов: Next.js, Prisma, Better Auth",
+    description: "Learn English irregular verbs",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
