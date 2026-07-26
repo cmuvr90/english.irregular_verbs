@@ -2,7 +2,14 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "../../generated/prisma/client";
 
-if (!process.env.DATABASE_URL) {
+// Интеграция Prisma Postgres на Vercel ставит один и тот же URL под несколькими
+// именами (DATABASE_URL, POSTGRES_URL, PRISMA_DATABASE_URL) — берём первое доступное.
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  process.env.PRISMA_DATABASE_URL ??
+  process.env.POSTGRES_URL;
+
+if (!databaseUrl) {
   throw new Error("Не задан DATABASE_URL — скопируйте .env.example в .env.local");
 }
 
@@ -12,7 +19,7 @@ if (!process.env.DATABASE_URL) {
  */
 function createClient() {
   const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: databaseUrl,
     // На serverless (Vercel) держим пул меньше, чем локально, но не 1:
     // Better Auth пишет через интерактивные $transaction, каждая из которых
     // занимает соединение целиком — с max: 1 параллельные запросы упирались бы
