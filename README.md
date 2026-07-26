@@ -7,7 +7,7 @@
 | Слой        | Технология                                                       |
 | ----------- | ---------------------------------------------------------------- |
 | Фреймворк   | Next.js 16 (App Router, Turbopack), React 19                      |
-| База        | PostgreSQL 17 — локально в Docker, на проде Neon/Vercel Postgres  |
+| База        | PostgreSQL 17 — локально в Docker, на проде Prisma Postgres       |
 | ORM         | Prisma 7 + driver adapter `@prisma/adapter-pg`                    |
 | Авторизация | Better Auth — email + пароль, сессии в БД                         |
 | Стили       | Tailwind CSS v4                                                   |
@@ -43,7 +43,7 @@ npm run dev
 | Команда               | Что делает                                                    |
 | --------------------- | ------------------------------------------------------------- |
 | `npm run dev`         | dev-сервер                                                    |
-| `npm run build`       | `prisma generate` + production-сборка                         |
+| `npm run build`       | production-сборка (клиент Prisma генерирует postinstall)      |
 | `npm run db:up`       | поднять Postgres в Docker                                     |
 | `npm run db:down`     | остановить контейнер (данные остаются в volume)               |
 | `npm run db:reset`    | снести том с данными и поднять чистую базу                    |
@@ -111,7 +111,7 @@ export async function getUserById(id: string) {
 
 ### Почему `@prisma/adapter-pg`
 
-Prisma 7 больше не поставляет встроенный движок запросов — подключение к базе идёт через driver adapter. Здесь это node-postgres поверх обычного пула; настройки пула (в том числе `max: 1` на serverless) — в `src/lib/prisma.ts`.
+Prisma 7 больше не поставляет встроенный движок запросов — подключение к базе идёт через driver adapter. Здесь это node-postgres поверх обычного пула; настройки пула (уменьшенный `max` на serverless) — в `src/lib/prisma.ts`. Prisma Postgres подключается той же обычной `postgres://`-строкой, отдельный адаптер не нужен.
 
 ### Даты
 
@@ -119,25 +119,32 @@ Prisma 7 больше не поставляет встроенный движо�
 
 ## Деплой на Vercel
 
-1. **База.** Vercel не хостит Postgres сам — заведите managed-базу через Storage → **Neon** (есть бесплатный тариф). Интеграция сама пропишет `DATABASE_URL`.
+1. **База.** Заведите базу через Storage → **Prisma Postgres** (есть бесплатный тариф). Интеграция сама пропишет `DATABASE_URL` — обычную `postgres://`-строку, которую наш `@prisma/adapter-pg` понимает без изменений. Пулинг соединений у Prisma Postgres встроенный, отдельный pgBouncer не нужен.
 
 2. **Переменные окружения** в Project Settings → Environment Variables:
 
    | Переменная           | Значение                                                     | Окружения          |
    | -------------------- | ------------------------------------------------------------ | ------------------ |
-   | `DATABASE_URL`       | строка подключения (ставит интеграция Neon)                   | все                |
+   | `DATABASE_URL`       | строка подключения (ставит интеграция Prisma Postgres)        | все                |
    | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` — **отдельный**, не локальный        | все                |
    | `BETTER_AUTH_URL`    | боевой домен, напр. `https://myapp.vercel.app`                 | только Production  |
 
    На Preview `BETTER_AUTH_URL` задавать не нужно: `src/lib/auth.ts` подхватит `VERCEL_URL`, и каждый превью-деплой заработает на своём домене. Один адрес на все окружения приведёт к `403 Invalid origin` на превью.
 
-3. **Миграции.** Клиент Prisma генерируется на билде (`postinstall` + `build`), но схему в боевой базе нужно создать:
+3. **Миграции.** Клиент Prisma генерируется при установке зависимостей (`postinstall`), но схему в боевой базе нужно создать:
 
    ```bash
    DATABASE_URL="postgres://...prod..." npx prisma migrate deploy
    ```
 
-   Для Neon берите **прямую** (unpooled) строку подключения — DDL через пул ведёт себя неожиданно. Либо пропишите деплой миграций в сборку: `"build": "prisma migrate deploy && prisma generate && next build"`.
+   Строку подключения берите ту же, что ставит интеграция (Vercel → Storage → база → `.env.local`-сниппет, или Prisma Console). Либо пропишите деплой миграций в сборку: `"build": "prisma migrate deploy && next build"`.
+
+   **База осталась со времён Drizzle** (snake_case-колонки)? `migrate deploy` на непустой базе без истории Prisma упадёт с P3005. Init-миграция содержит путь апгрейда (переименует колонки, сохранит данные) — выполните её напрямую и пометьте применённой:
+
+   ```bash
+   DATABASE_URL="postgres://...prod..." npx prisma db execute --file prisma/migrations/20260725151202_init/migration.sql
+   DATABASE_URL="postgres://...prod..." npx prisma migrate resolve --applied 20260725151202_init
+   ```
 
 ## Что дальше
 

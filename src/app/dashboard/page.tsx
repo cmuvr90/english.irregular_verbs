@@ -54,9 +54,9 @@ export default async function DashboardPage() {
         </div>
 
         <p className="mt-10 text-sm text-subtle">
-          Дальше сюда можно добавлять свои таблицы в{" "}
-          <code className="font-mono">src/db/schema.ts</code> и запросы через{" "}
-          <code className="font-mono">db</code> из <code className="font-mono">@/db</code>.
+          Дальше сюда можно добавлять свои модели в{" "}
+          <code className="font-mono">prisma/schema.prisma</code>, а запросы — в{" "}
+          <code className="font-mono">src/dal/</code>.
         </p>
       </main>
     </>

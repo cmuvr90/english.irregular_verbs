@@ -4,11 +4,8 @@ import { defineConfig } from "prisma/config";
 // Prisma CLI работает вне Next.js и сама .env.local не читает.
 config({ path: [".env.local", ".env"], quiet: true });
 
+// Схема и миграции лежат по стандартным путям (prisma/) — задавать их не нужно.
 export default defineConfig({
-  schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-  },
   datasource: {
     url: process.env.DATABASE_URL,
   },

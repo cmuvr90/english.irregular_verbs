@@ -13,8 +13,11 @@ if (!process.env.DATABASE_URL) {
 function createClient() {
   const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
-    // На serverless (Vercel) инстанс живёт недолго — держим пул маленьким.
-    max: process.env.VERCEL ? 1 : 10,
+    // На serverless (Vercel) держим пул меньше, чем локально, но не 1:
+    // Better Auth пишет через интерактивные $transaction, каждая из которых
+    // занимает соединение целиком — с max: 1 параллельные запросы упирались бы
+    // в единственное соединение (P2028) даже при небольшой нагрузке.
+    max: process.env.VERCEL ? 5 : 10,
     idleTimeoutMillis: 30_000,
   });
 
