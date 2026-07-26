@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { InstallPrompt } from "@/components/install-prompt";
 import { SiteHeader } from "@/components/site-header";
 import { getSession } from "@/lib/session";
 
@@ -73,6 +74,8 @@ export default async function Home() {
           <code className="font-mono">npm run dev</code>
         </div>
       </footer>
+
+      <InstallPrompt />
     </>
   );
 }
