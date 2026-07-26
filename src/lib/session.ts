@@ -12,9 +12,9 @@ export const getSession = cache(async () => {
   return auth.api.getSession({ headers: await headers() });
 });
 
-/** Для защищённых страниц: отдаёт сессию либо уводит на вход. */
+/** Для защищённых страниц: отдаёт сессию либо уводит на вход (он на главной). */
 export async function requireSession() {
   const session = await getSession();
-  if (!session) redirect("/sign-in");
+  if (!session) redirect("/");
   return session;
 }

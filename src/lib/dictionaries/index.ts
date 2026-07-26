@@ -1,6 +1,8 @@
 import "server-only";
 
-import type { Locale } from "@/lib/i18n";
+import { cache } from "react";
+
+import type { Locale } from "@/lib/locales";
 
 import type { Dictionary } from "./en";
 
@@ -14,6 +16,7 @@ const dictionaries = {
   ru: () => import("./ru").then((m) => m.default),
 } satisfies Record<Locale, () => Promise<Dictionary>>;
 
-export const getDictionary = (locale: Locale) => dictionaries[locale]();
+/** `cache` — словарь запрашивают и метаданные, и layout, и страница. */
+export const getDictionary = cache((locale: Locale) => dictionaries[locale]());
 
 export type { Dictionary };

@@ -3,24 +3,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
-export const locales = ["en", "be", "ru"] as const;
-
-export type Locale = (typeof locales)[number];
-
-export const defaultLocale: Locale = "en";
-
-/** Имя cookie с выбранным языком — читается и на сервере, и в Server Action. */
-export const LOCALE_COOKIE = "lang";
-
-export const localeNames: Record<Locale, string> = {
-  en: "EN",
-  be: "BE",
-  ru: "RU",
-};
-
-export function isLocale(value: string | undefined | null): value is Locale {
-  return !!value && (locales as readonly string[]).includes(value);
-}
+import { defaultLocale, isLocale, LOCALE_COOKIE, type Locale } from "./locales";
 
 /**
  * Язык текущего запроса: выбор пользователя из cookie, иначе — язык браузера.
@@ -54,11 +37,4 @@ function matchAcceptLanguage(header: string | null): Locale {
     if (isLocale(tag)) return tag;
   }
   return defaultLocale;
-}
-
-/** Подстановка значений в строку словаря: "Ещё {count} глаголов" */
-export function interpolate(template: string, values: Record<string, string | number>) {
-  return template.replace(/\{(\w+)\}/g, (match, key) =>
-    key in values ? String(values[key]) : match,
-  );
 }

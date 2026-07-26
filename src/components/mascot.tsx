@@ -1,12 +1,11 @@
-/** Маскот стартового экрана: машущий парень в худи с книгой (плоский SVG). */
+/**
+ * Маскот стартового экрана: машущий парень в худи с книгой (плоский SVG).
+ * Иллюстрация декоративная — скрыта от скринридеров, поэтому не нуждается
+ * в переводимой подписи.
+ */
 export function Mascot({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 240 170"
-      className={className}
-      role="img"
-      aria-label="Маскот приложения приветственно машет рукой"
-    >
+    <svg viewBox="0 0 240 170" className={className} aria-hidden>
       {/* фон: мягкое пятно и листья */}
       <ellipse cx="122" cy="112" rx="86" ry="58" fill="#dbeafe" opacity="0.55" />
       <g fill="#9ed8c9" opacity="0.85">

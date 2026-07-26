@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from "@/components/icons";
 import { signIn, signUp } from "@/lib/auth-client";
 import type { Dictionary } from "@/lib/dictionaries/en";
 
@@ -39,9 +40,10 @@ export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] 
       : await signIn.email({ email, password });
 
     if (result.error) {
-      const code = result.error.code;
+      // Коды приходят строками: незнакомый код падает на сообщение библиотеки.
+      const translated: Record<string, string | undefined> = dict.errors;
       setError(
-        (code && dict.errors[code]) ?? result.error.message ?? dict.errors.generic,
+        translated[result.error.code ?? ""] ?? result.error.message ?? dict.errors.generic,
       );
       setPending(false);
       return;
@@ -62,7 +64,7 @@ export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] 
             autoComplete="name"
             placeholder={dict.namePlaceholder}
             required
-            icon={<UserIcon />}
+            icon={<UserIcon size={20} />}
           />
         )}
 
@@ -72,32 +74,28 @@ export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] 
           autoComplete="email"
           placeholder={dict.emailPlaceholder}
           required
-          icon={<MailIcon />}
+          icon={<MailIcon size={20} />}
         />
 
-        <label className="relative block">
-          <span className="sr-only">{dict.passwordPlaceholder}</span>
-          <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-subtle">
-            <LockIcon />
-          </span>
-          <input
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete={isSignUp ? "new-password" : "current-password"}
-            placeholder={dict.passwordPlaceholder}
-            minLength={8}
-            required
-            className="w-full rounded-2xl border border-line bg-transparent py-3.5 pr-12 pl-12 text-base outline-none transition-colors placeholder:text-subtle/70 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? dict.hidePassword : dict.showPassword}
-            className="absolute inset-y-0 right-4 flex items-center text-subtle transition-colors hover:text-foreground"
-          >
-            {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-          </button>
-        </label>
+        <Field
+          name="password"
+          type={showPassword ? "text" : "password"}
+          autoComplete={isSignUp ? "new-password" : "current-password"}
+          placeholder={dict.passwordPlaceholder}
+          minLength={8}
+          required
+          icon={<LockIcon size={20} />}
+          action={
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? dict.hidePassword : dict.showPassword}
+              className="absolute inset-y-0 right-4 flex items-center text-subtle transition-colors hover:text-foreground"
+            >
+              {showPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
+            </button>
+          }
+        />
 
         {error && (
           <p
@@ -127,12 +125,16 @@ export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] 
   );
 }
 
+/** Поле с иконкой слева и опциональной кнопкой справа (переключатель пароля). */
 function Field({
   icon,
-  name,
+  action,
   placeholder,
   ...props
-}: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: {
+  icon: React.ReactNode;
+  action?: React.ReactNode;
+} & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="relative block">
       <span className="sr-only">{placeholder}</span>
@@ -140,67 +142,13 @@ function Field({
         {icon}
       </span>
       <input
-        name={name}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-line bg-transparent py-3.5 pr-4 pl-12 text-base outline-none transition-colors placeholder:text-subtle/70 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        className={`w-full rounded-2xl border border-line bg-transparent py-3.5 pl-12 text-base outline-none transition-colors placeholder:text-subtle/70 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 ${
+          action ? "pr-12" : "pr-4"
+        }`}
         {...props}
       />
+      {action}
     </label>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M5 19.5c1.2-3 3.8-4.5 7-4.5s5.8 1.5 7 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function MailIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="3" y="5" width="18" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-      <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="5" y="10" width="14" height="10" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M8 10V7.5a4 4 0 0 1 8 0V10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <circle cx="12" cy="15" r="1.4" fill="currentColor" />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 4l16 16M9.9 6.1A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17.6 17.6 0 0 1-3.2 3.9M6 8a17 17 0 0 0-3.5 4S6 18.5 12 18.5c1 0 2-.2 2.8-.5M10 10.1a3 3 0 0 0 4 4.2"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

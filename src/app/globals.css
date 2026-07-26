@@ -12,7 +12,6 @@
   --background: #ffffff;
   --foreground: #171717;
   --muted: #fafafa;
-  --card: #ffffff;
   --line: #e4e4e7;
   --subtle: #71717a;
 }
@@ -21,7 +20,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-card: var(--card);
   --color-line: var(--line);
   --color-subtle: var(--subtle);
   --font-sans: var(--font-geist-sans);

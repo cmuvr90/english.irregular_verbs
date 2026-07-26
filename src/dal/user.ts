@@ -26,6 +26,3 @@ export async function getUserById(id: string) {
   });
 }
 
-export async function countUsers() {
-  return prisma.user.count();
-}

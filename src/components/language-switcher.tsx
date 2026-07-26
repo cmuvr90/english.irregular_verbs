@@ -3,17 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import type { Locale } from "@/lib/i18n";
 import { setLocale } from "@/lib/locale-actions";
-
-const options: { value: Locale; label: string }[] = [
-  { value: "en", label: "EN" },
-  { value: "be", label: "BE" },
-  { value: "ru", label: "RU" },
-];
+import { type Locale, localeNames, locales } from "@/lib/locales";
 
 /**
- * Переключатель языка: сегментированный контрол на три кнопки.
+ * Переключатель языка: сегментированный контрол по числу поддерживаемых языков.
  * Язык хранится в cookie, поэтому после смены обновляем серверные компоненты.
  */
 export function LanguageSwitcher({ current }: { current: Locale }) {
@@ -28,27 +22,33 @@ export function LanguageSwitcher({ current }: { current: Locale }) {
         pending ? "opacity-60" : ""
       }`}
     >
-      {options.map((option) => {
-        const active = option.value === selected;
+      {locales.map((locale) => {
+        const active = locale === selected;
         return (
           <button
-            key={option.value}
+            key={locale}
             type="button"
             aria-pressed={active}
             disabled={pending}
             onClick={() => {
               if (active) return;
-              setSelected(option.value);
+              setSelected(locale);
               startTransition(async () => {
-                await setLocale(option.value);
-                router.refresh();
+                try {
+                  await setLocale(locale);
+                  router.refresh();
+                } catch {
+                  // Не удалось сохранить — возвращаем подсветку на текущий язык,
+                  // иначе кнопка врёт о состоянии интерфейса.
+                  setSelected(current);
+                }
               });
             }}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
               active ? "bg-blue-600 text-white" : "text-subtle hover:text-foreground"
             }`}
           >
-            {option.label}
+            {localeNames[locale]}
           </button>
         );
       })}

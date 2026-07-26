@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 
-import { isLocale, LOCALE_COOKIE, type Locale } from "@/lib/i18n";
+import { isLocale, LOCALE_COOKIE, type Locale } from "@/lib/locales";
 
 /** Запоминает выбранный язык в cookie на год. */
 export async function setLocale(locale: Locale) {

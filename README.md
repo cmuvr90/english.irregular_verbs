@@ -65,13 +65,13 @@ src/
 │  ├─ api/auth/[...all]/route.ts   все эндпоинты Better Auth
 │  ├─ coming-soon/page.tsx         заглушка для разделов в разработке
 │  ├─ dashboard/page.tsx           кабинет (только для авторизованных)
-│  ├─ sign-in/page.tsx             redirect на / (вход живёт на главной)
 │  ├─ sign-up/page.tsx             регистрация
-│  ├─ manifest.ts                  манифест PWA
+│  ├─ icon.png / manifest.ts       иконка вкладки и манифест PWA
 │  └─ page.tsx                     стартовый экран: вход + промо
 ├─ components/
 │  ├─ auth-card.tsx                форма входа/регистрации (клиент)
 │  ├─ book-logo.tsx                логотип
+│  ├─ icons.tsx                    все SVG-иконки приложения
 │  ├─ install-prompt.tsx           плашка «Установить приложение» (PWA)
 │  ├─ language-switcher.tsx        переключатель EN / BE / RU (клиент)
 │  ├─ mascot.tsx                   маскот-иллюстрация
@@ -82,7 +82,8 @@ src/
    ├─ auth.ts                      конфиг Better Auth (сервер)
    ├─ auth-client.ts               клиент Better Auth (браузер)
    ├─ dictionaries/                переводы: en.ts (эталон), be.ts, ru.ts
-   ├─ i18n.ts                      locale текущего запроса, interpolate()
+   ├─ i18n.ts                      язык текущего запроса (только сервер)
+   ├─ locales.ts                   список языков, interpolate(), plural()
    ├─ locale-actions.ts            Server Action: смена языка
    ├─ prisma.ts                    инстанс PrismaClient
    └─ session.ts                   getSession() / requireSession()
@@ -94,7 +95,7 @@ prisma.config.ts                   конфиг Prisma CLI (читает .env.lo
 **Защита страниц** делается на сервере, в самих компонентах:
 
 ```ts
-const session = await requireSession(); // нет сессии -> redirect на /sign-in
+const session = await requireSession(); // нет сессии -> redirect на / (там вход)
 ```
 
 Это надёжнее проверки в middleware/proxy: авторизация выполняется там же, где читаются данные, и её нельзя обойти прямым запросом.
@@ -128,7 +129,14 @@ const dict = await getDictionary(locale);
 // dict.dashboard.todayTitle -> "Today" | "Сёння" | "Сегодня"
 ```
 
-`src/lib/dictionaries/en.ts` — эталон структуры: `be.ts` и `ru.ts` типизированы как `Dictionary`, поэтому **пропущенный ключ в переводе не соберётся**. Клиентские компоненты получают нужный кусок словаря пропсами (`dict={dict.auth}`) — так в бандл не попадают все три языка сразу.
+`src/lib/dictionaries/en.ts` — эталон структуры: `be.ts` и `ru.ts` типизированы как `Dictionary`, поэтому **пропущенный ключ в переводе не соберётся** (включая коды ошибок — они перечислены в типе `AuthErrorCode`). Клиентские компоненты получают нужный кусок словаря пропсами (`dict={dict.auth}`) — так в бандл не попадают все три языка сразу.
+
+Строки с числом объявляются формами и собираются через `plural()`, который спрашивает форму у `Intl.PluralRules`:
+
+```ts
+// ru.ts — 1 глагол / 2 глагола / 5 глаголов
+const remaining: PluralForms = { one: "Ещё {count} глагол…", few: "…глагола…", many: "…глаголов…", other: "…глагола…" };
+```
 
 **Новая строка:** добавить ключ в `en.ts` → TypeScript подскажет, где дописать `be.ts` и `ru.ts`. **Новый язык:** добавить код в `locales` (`src/lib/i18n.ts`), файл словаря и кнопку в `language-switcher.tsx`.
 

@@ -1,6 +1,8 @@
-import type { Dictionary } from "./en";
+import type { PluralForms } from "@/lib/locales";
 
-const errors: Record<string, string> = {
+import type { AuthErrorCode, Dictionary } from "./en";
+
+const errors: Record<AuthErrorCode, string> = {
   generic: "Что-то пошло не так, попробуйте ещё раз",
   INVALID_EMAIL_OR_PASSWORD: "Неверная почта или пароль",
   USER_ALREADY_EXISTS: "Пользователь с такой почтой уже зарегистрирован",
@@ -9,6 +11,13 @@ const errors: Record<string, string> = {
   PASSWORD_TOO_LONG: "Пароль слишком длинный",
   INVALID_EMAIL: "Некорректный адрес почты",
   EMAIL_NOT_VERIFIED: "Почта не подтверждена",
+};
+
+const remaining: PluralForms = {
+  one: "Ещё {count} глагол до цели",
+  few: "Ещё {count} глагола до цели",
+  many: "Ещё {count} глаголов до цели",
+  other: "Ещё {count} глагола до цели",
 };
 
 const ru: Dictionary = {
@@ -72,7 +81,7 @@ const ru: Dictionary = {
     todayGoal: "Ежедневная цель",
     changeGoal: "Изменить цель",
     verbs: "глаголов",
-    remaining: "Ещё {count} глаголов до цели",
+    remaining,
     quickAccess: "Быстрый доступ",
     trainers: "Тренажёры",
     verbList: "Список глаголов",

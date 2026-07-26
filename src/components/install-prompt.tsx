@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { CloseIcon, ShareIcon } from "@/components/icons";
 import type { Dictionary } from "@/lib/dictionaries/en";
 
 /**
@@ -100,33 +101,9 @@ export function InstallPrompt({ dict }: { dict: Dictionary["install"] }) {
           aria-label={dict.dismiss}
           className="shrink-0 rounded-lg p-1.5 text-subtle transition-colors hover:bg-muted"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <path d="M4 4l8 8m0-8l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <CloseIcon />
         </button>
       </div>
     </div>
-  );
-}
-
-/** Значок «Поделиться» из iOS — чтобы инструкция узнавалась визуально. */
-function ShareIcon() {
-  return (
-    <svg
-      className="inline-block align-[-2px]"
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M8 1v9M5 3.5L8 1l3 2.5M3.5 7H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-.5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

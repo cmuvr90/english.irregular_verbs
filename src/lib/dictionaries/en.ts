@@ -1,11 +1,23 @@
+import type { PluralForms } from "@/lib/locales";
+
 /**
  * Английский — язык по умолчанию и источник структуры словарей:
  * остальные локали типизированы как `Dictionary`, поэтому пропущенный
  * ключ в них — ошибка компиляции.
  */
 
-/** Ключи — коды ошибок Better Auth (они приходят на английском). */
-const errors: Record<string, string> = {
+/** Коды ошибок Better Auth + собственный `generic` на всё остальное. */
+export type AuthErrorCode =
+  | "generic"
+  | "INVALID_EMAIL_OR_PASSWORD"
+  | "USER_ALREADY_EXISTS"
+  | "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL"
+  | "PASSWORD_TOO_SHORT"
+  | "PASSWORD_TOO_LONG"
+  | "INVALID_EMAIL"
+  | "EMAIL_NOT_VERIFIED";
+
+const errors: Record<AuthErrorCode, string> = {
   generic: "Something went wrong, please try again",
   INVALID_EMAIL_OR_PASSWORD: "Wrong email or password",
   USER_ALREADY_EXISTS: "A user with this email already exists",
@@ -14,6 +26,11 @@ const errors: Record<string, string> = {
   PASSWORD_TOO_LONG: "Password is too long",
   INVALID_EMAIL: "Invalid email address",
   EMAIL_NOT_VERIFIED: "Email is not verified",
+};
+
+const remaining: PluralForms = {
+  one: "{count} more verb to go",
+  other: "{count} more verbs to go",
 };
 
 const en = {
@@ -77,7 +94,7 @@ const en = {
     todayGoal: "Daily goal",
     changeGoal: "Change goal",
     verbs: "verbs",
-    remaining: "{count} more verbs to go",
+    remaining,
     quickAccess: "Quick access",
     trainers: "Trainers",
     verbList: "Verb list",

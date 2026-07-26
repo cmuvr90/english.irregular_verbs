@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AuthCard } from "@/components/auth-card";
 import { BookLogo } from "@/components/book-logo";
+import { CalendarIcon, ChartIcon, FlameIcon, HeartIcon } from "@/components/icons";
 import { InstallPrompt } from "@/components/install-prompt";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Mascot } from "@/components/mascot";
@@ -18,21 +19,9 @@ export default async function Home() {
   const dict = await getDictionary(locale);
 
   const features = [
-    {
-      icon: <CalendarIcon />,
-      chip: "bg-green-100 text-green-600",
-      label: dict.home.featureDaily,
-    },
-    {
-      icon: <FlameIcon />,
-      chip: "bg-orange-100 text-orange-500",
-      label: dict.home.featureStreak,
-    },
-    {
-      icon: <ChartIcon />,
-      chip: "bg-violet-100 text-violet-600",
-      label: dict.home.featureProgress,
-    },
+    { icon: <CalendarIcon />, chip: "bg-green-100 text-green-600", label: dict.home.featureDaily },
+    { icon: <FlameIcon />, chip: "bg-orange-100 text-orange-500", label: dict.home.featureStreak },
+    { icon: <ChartIcon />, chip: "bg-violet-100 text-violet-600", label: dict.home.featureProgress },
   ];
 
   return (
@@ -68,7 +57,7 @@ export default async function Home() {
             ))}
           </ul>
           <p className="mt-5 flex items-center justify-center gap-2 text-sm text-subtle">
-            <HeartIcon />
+            <HeartIcon size={18} className="text-blue-500" />
             {dict.home.footer}
           </p>
         </div>
@@ -76,50 +65,5 @@ export default async function Home() {
         <InstallPrompt dict={dict.install} />
       </div>
     </main>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="3.5" y="5" width="17" height="15.5" rx="3" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M3.5 9.5h17M8 3v3.5M16 3v3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="m9.5 14.5 2 2 3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function FlameIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 3s1 2.4 1 4.2c1.1-.6 2-1.7 2-1.7 2.4 2 4 4.6 4 7.5a7 7 0 0 1-14 0c0-4.4 4-6.5 7-10Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path d="M12 19.5a3 3 0 0 1-3-3c0-1.7 1.6-2.7 3-4 1.4 1.3 3 2.3 3 4a3 3 0 0 1-3 3Z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ChartIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="4" y="12" width="4" height="8" rx="1.2" fill="currentColor" />
-      <rect x="10" y="8" width="4" height="12" rx="1.2" fill="currentColor" />
-      <rect x="16" y="4" width="4" height="16" rx="1.2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 20.5S3.5 15.5 3.5 9.7A4.7 4.7 0 0 1 12 7a4.7 4.7 0 0 1 8.5 2.7c0 5.8-8.5 10.8-8.5 10.8Z"
-        fill="#3b82f6"
-      />
-    </svg>
   );
 }
