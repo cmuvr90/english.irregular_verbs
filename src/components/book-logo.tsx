@@ -2,7 +2,7 @@
 export function BookLogo({ className }: { className?: string }) {
   return (
     <div
-      className={`flex size-20 items-center justify-center rounded-[22px] bg-white shadow-sm dark:bg-card dark:ring-1 dark:ring-line ${className ?? ""}`}
+      className={`flex size-20 items-center justify-center rounded-[22px] border border-line/60 bg-white shadow-sm ${className ?? ""}`}
     >
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path

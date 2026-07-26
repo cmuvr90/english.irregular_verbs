@@ -12,7 +12,7 @@ export default async function SignUpPage() {
   if (session) redirect("/dashboard");
 
   return (
-    <main className="flex-1 bg-[#edf2fa] dark:bg-background">
+    <main className="flex-1 bg-white">
       <div className="mx-auto flex w-full max-w-md flex-col items-center px-5 pt-12 pb-8">
         <BookLogo />
 

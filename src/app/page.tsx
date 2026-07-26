@@ -30,7 +30,7 @@ export default async function Home() {
   if (session) redirect("/dashboard");
 
   return (
-    <main className="flex-1 bg-[#edf2fa] dark:bg-background">
+    <main className="flex-1 bg-white">
       <div className="mx-auto flex w-full max-w-md flex-col items-center px-5 pt-12 pb-8">
         <BookLogo />
 
@@ -46,7 +46,7 @@ export default async function Home() {
         <AuthCard mode="sign-in" />
 
         {/* преимущества */}
-        <div className="mt-5 w-full rounded-3xl bg-white/70 p-5 dark:bg-card/70">
+        <div className="mt-5 w-full rounded-3xl border border-line/60 bg-white p-5">
           <ul className="grid grid-cols-3 divide-x divide-line/70">
             {features.map((f) => (
               <li key={f.label} className="flex flex-col items-center gap-2 px-2 text-center">

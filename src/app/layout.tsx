@@ -27,12 +27,9 @@ export const metadata: Metadata = {
   },
 };
 
-// Цвет системных панелей браузера/ОС — под светлую и тёмную тему приложения.
+// Приложение всегда светлое — системные панели браузера/ОС красим в белый.
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({

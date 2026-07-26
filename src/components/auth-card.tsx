@@ -69,7 +69,7 @@ export function AuthCard({ mode }: { mode: Mode }) {
   }
 
   return (
-    <div className="w-full rounded-3xl bg-white p-5 shadow-[0_16px_48px_rgba(59,130,246,0.10)] sm:p-6 dark:bg-card dark:shadow-none dark:ring-1 dark:ring-line">
+    <div className="w-full rounded-3xl border border-line/60 bg-white p-5 shadow-[0_16px_48px_rgba(59,130,246,0.10)] sm:p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === "sign-up" && (
           <Field name="name" type="text" autoComplete="name" placeholder="Имя" required icon={<UserIcon />} />

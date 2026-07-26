@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Тёмной темы у приложения нет — системный тёмный режим игнорируется.
+   dark:-утилиты переключены на класс .dark, который нигде не ставится. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -18,17 +22,6 @@
   --color-subtle: var(--subtle);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --muted: #111113;
-    --card: #131316;
-    --line: #27272a;
-    --subtle: #a1a1aa;
-  }
 }
 
 body {
