@@ -45,3 +45,6 @@ next-env.d.ts
 
 # prisma: клиент генерируется из схемы, в репозитории не хранится
 /generated
+
+# данные Postgres из docker-compose (каталог принадлежит root)
+/.data

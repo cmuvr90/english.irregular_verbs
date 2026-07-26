@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Том Postgres из docker-compose принадлежит root: сканер источников Tailwind
+   не должен туда заглядывать, иначе dev-сервер падает с Permission denied. */
+@source not "../../.data";
+
 /* Тёмной темы у приложения нет — системный тёмный режим игнорируется.
    dark:-утилиты переключены на класс .dark, который нигде не ставится. */
 @custom-variant dark (&:where(.dark, .dark *));
