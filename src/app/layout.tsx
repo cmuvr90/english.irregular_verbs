@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -19,6 +19,21 @@ export const metadata: Metadata = {
   },
   description:
     "Стартовый шаблон: Next.js, Postgres, Prisma, Better Auth, Tailwind CSS",
+  applicationName: "Irregular Verbs",
+  // iOS не читает manifest полностью — режим «как приложение» включается этими метатегами.
+  appleWebApp: {
+    capable: true,
+    title: "Irregular Verbs",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+// Цвет системных панелей браузера/ОС — под светлую и тёмную тему приложения.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
 };
 
 export default function RootLayout({
