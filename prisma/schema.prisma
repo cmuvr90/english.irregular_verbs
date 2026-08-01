@@ -97,6 +97,9 @@ model Verb {
 
   groups VerbGroupLink[]
 
+  // Один и тот же набор форм не должен попасть в базу дважды (а сид может
+  // безопасно делать upsert). Одна form_1 при разных формах допустима: lie.
+  @@unique([form1, form2, form3])
   @@map("verbs")
 }
 

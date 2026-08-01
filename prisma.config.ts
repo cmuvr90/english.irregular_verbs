@@ -17,4 +17,8 @@ export default defineConfig({
   datasource: {
     url: databaseUrl,
   },
+  migrations: {
+    // `prisma db seed` и авто-сид после `migrate reset`.
+    seed: "tsx prisma/seed.ts",
+  },
 });
