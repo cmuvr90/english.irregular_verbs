@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { CloseIcon, ShareIcon } from "@/components/icons";
+import { Share, X } from "lucide-react";
 import type { Dictionary } from "@/lib/dictionaries/en";
 
 /**
@@ -75,7 +75,7 @@ export function InstallPrompt({ dict }: { dict: Dictionary["install"] }) {
             <p className="mt-0.5 text-xs text-subtle">{dict.subtitle}</p>
           ) : (
             <p className="mt-0.5 text-xs text-subtle">
-              <ShareIcon /> {dict.iosHint}
+              <Share size={14} className="inline-block align-[-2px]" /> {dict.iosHint}
             </p>
           )}
         </div>
@@ -101,7 +101,7 @@ export function InstallPrompt({ dict }: { dict: Dictionary["install"] }) {
           aria-label={dict.dismiss}
           className="shrink-0 rounded-lg p-1.5 text-subtle transition-colors hover:bg-muted"
         >
-          <CloseIcon />
+          <X size={16} />
         </button>
       </div>
     </div>

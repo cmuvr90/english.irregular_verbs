@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AuthCard } from "@/components/auth-card";
 import { BookLogo } from "@/components/book-logo";
-import { CalendarIcon, ChartIcon, FlameIcon, HeartIcon } from "@/components/icons";
+import { CalendarCheck, ChartColumn, Flame, Heart } from "lucide-react";
 import { InstallPrompt } from "@/components/install-prompt";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Mascot } from "@/components/mascot";
@@ -19,9 +19,9 @@ export default async function Home() {
   const dict = await getDictionary(locale);
 
   const features = [
-    { icon: <CalendarIcon />, chip: "bg-green-100 text-green-600", label: dict.home.featureDaily },
-    { icon: <FlameIcon />, chip: "bg-orange-100 text-orange-500", label: dict.home.featureStreak },
-    { icon: <ChartIcon />, chip: "bg-violet-100 text-violet-600", label: dict.home.featureProgress },
+    { icon: <CalendarCheck size={22} />, chip: "bg-green-100 text-green-600", label: dict.home.featureDaily },
+    { icon: <Flame size={22} />, chip: "bg-orange-100 text-orange-500", label: dict.home.featureStreak },
+    { icon: <ChartColumn size={22} />, chip: "bg-violet-100 text-violet-600", label: dict.home.featureProgress },
   ];
 
   return (
@@ -57,7 +57,7 @@ export default async function Home() {
             ))}
           </ul>
           <p className="mt-5 flex items-center justify-center gap-2 text-sm text-subtle">
-            <HeartIcon size={18} className="text-blue-500" />
+            <Heart size={18} className="text-blue-500" fill="currentColor" />
             {dict.home.footer}
           </p>
         </div>

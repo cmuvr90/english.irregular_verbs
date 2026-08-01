@@ -33,6 +33,11 @@ const remaining: PluralForms = {
   other: "{count} more verbs to go",
 };
 
+const verbCount: PluralForms = {
+  one: "{count} verb",
+  other: "{count} verbs",
+};
+
 const en = {
   meta: {
     title: "Irregular Verbs — learn English irregular verbs",
@@ -41,6 +46,7 @@ const en = {
     dashboard: "Dashboard",
     signUp: "Sign up",
     comingSoon: "Coming soon",
+    verbGroups: "Verb groups",
   },
   common: {
     appName: "Irregular Verbs",
@@ -109,6 +115,14 @@ const en = {
     title: "Coming soon!",
     text: "This section is still in development — something useful will show up here shortly.",
     back: "Back to dashboard",
+  },
+  verbGroups: {
+    title: "Verb groups",
+    subtitle: "All irregular verbs split into logical patterns",
+    count: verbCount,
+    back: "All groups",
+    backToDashboard: "Back to dashboard",
+    empty: "No verbs in this group yet",
   },
 };
 

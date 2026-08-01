@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from "@/components/icons";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { signIn, signUp } from "@/lib/auth-client";
 import type { Dictionary } from "@/lib/dictionaries/en";
 
@@ -64,7 +64,7 @@ export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] 
             autoComplete="name"
             placeholder={dict.namePlaceholder}
             required
-            icon={<UserIcon size={20} />}
+            icon={<User size={20} />}
           />
         )}
 
@@ -74,7 +74,7 @@ export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] 
           autoComplete="email"
           placeholder={dict.emailPlaceholder}
           required
-          icon={<MailIcon size={20} />}
+          icon={<Mail size={20} />}
         />
 
         <Field
@@ -84,7 +84,7 @@ export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] 
           placeholder={dict.passwordPlaceholder}
           minLength={8}
           required
-          icon={<LockIcon size={20} />}
+          icon={<Lock size={20} />}
           action={
             <button
               type="button"
@@ -92,7 +92,7 @@ export function AuthCard({ mode, dict }: { mode: Mode; dict: Dictionary["auth"] 
               aria-label={showPassword ? dict.hidePassword : dict.showPassword}
               className="absolute inset-y-0 right-4 flex items-center text-subtle transition-colors hover:text-foreground"
             >
-              {showPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           }
         />

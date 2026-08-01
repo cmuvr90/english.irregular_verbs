@@ -20,6 +20,13 @@ const remaining: PluralForms = {
   other: "Ещё {count} глагола до цели",
 };
 
+const verbCount: PluralForms = {
+  one: "{count} глагол",
+  few: "{count} глагола",
+  many: "{count} глаголов",
+  other: "{count} глагола",
+};
+
 const ru: Dictionary = {
   meta: {
     title: "Irregular Verbs — английские неправильные глаголы",
@@ -28,6 +35,7 @@ const ru: Dictionary = {
     dashboard: "Кабинет",
     signUp: "Регистрация",
     comingSoon: "Скоро",
+    verbGroups: "Группы глаголов",
   },
   common: {
     appName: "Irregular Verbs",
@@ -96,6 +104,14 @@ const ru: Dictionary = {
     title: "Скоро!",
     text: "Этот раздел ещё в разработке — совсем скоро здесь появится что-то полезное.",
     back: "Вернуться в кабинет",
+  },
+  verbGroups: {
+    title: "Группы глаголов",
+    subtitle: "Все неправильные глаголы, разбитые по логическим паттернам",
+    count: verbCount,
+    back: "Все группы",
+    backToDashboard: "Вернуться в кабинет",
+    empty: "В этой группе пока нет глаголов",
   },
 };
 

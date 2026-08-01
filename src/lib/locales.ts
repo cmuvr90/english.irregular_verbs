@@ -28,6 +28,16 @@ export function isLocale(value: string | undefined | null): value is Locale {
   return !!value && (locales as readonly string[]).includes(value);
 }
 
+/**
+ * Достаёт перевод из json-поля БД вида {"en": "...", "ru": "..."}.
+ * Нет перевода на текущий язык — падаем на язык по умолчанию.
+ */
+export function pickLocalized(value: unknown, locale: Locale): string {
+  if (!value || typeof value !== "object") return "";
+  const map = value as Partial<Record<string, string>>;
+  return map[locale] ?? map[defaultLocale] ?? "";
+}
+
 /** Подстановка значений в строку словаря: "Ещё {count} глаголов". */
 export function interpolate(template: string, values: Record<string, string | number>) {
   return template.replace(/\{(\w+)\}/g, (match, key) =>

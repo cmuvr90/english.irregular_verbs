@@ -20,6 +20,13 @@ const remaining: PluralForms = {
   other: "Ще {count} дієслова до мети",
 };
 
+const verbCount: PluralForms = {
+  one: "{count} дієслово",
+  few: "{count} дієслова",
+  many: "{count} дієслів",
+  other: "{count} дієслова",
+};
+
 const uk: Dictionary = {
   meta: {
     title: "Irregular Verbs — англійські неправильні дієслова",
@@ -28,6 +35,7 @@ const uk: Dictionary = {
     dashboard: "Кабінет",
     signUp: "Реєстрація",
     comingSoon: "Незабаром",
+    verbGroups: "Групи дієслів",
   },
   common: {
     appName: "Irregular Verbs",
@@ -96,6 +104,14 @@ const uk: Dictionary = {
     title: "Незабаром!",
     text: "Цей розділ ще в розробці — зовсім скоро тут з'явиться щось корисне.",
     back: "Повернутися в кабінет",
+  },
+  verbGroups: {
+    title: "Групи дієслів",
+    subtitle: "Усі неправильні дієслова, розбиті за логічними патернами",
+    count: verbCount,
+    back: "Усі групи",
+    backToDashboard: "Повернутися в кабінет",
+    empty: "У цій групі поки немає дієслів",
   },
 };
 

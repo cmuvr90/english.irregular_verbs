@@ -2,22 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import {
-  BookIcon,
-  CalendarIcon,
-  CardsIcon,
-  ChartIcon,
-  ChevronIcon,
-  DumbbellIcon,
-  FlameIcon,
-  GearIcon,
-  GlobeIcon,
-  HomeIcon,
-  ListIcon,
-  RepeatIcon,
-  TargetBoard,
-  TargetIcon,
-  UserIcon,
-} from "@/components/icons";
+  BookOpen,
+  CalendarCheck,
+  ChartColumn,
+  ChevronRight,
+  Dumbbell,
+  Flame,
+  Globe,
+  List,
+  RotateCw,
+  Settings,
+  Target,
+  WalletCards,
+} from "lucide-react";
+
+import { BottomNav } from "@/components/bottom-nav";
+import { TargetBoard } from "@/components/icons";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Mascot } from "@/components/mascot";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -54,21 +54,21 @@ export default async function DashboardPage() {
 
   const stats = [
     {
-      icon: <BookIcon />,
+      icon: <BookOpen size={22} />,
       chip: "bg-emerald-100 text-emerald-600",
       value: demo.verbs,
       color: "text-emerald-600",
       label: t.statVerbs,
     },
     {
-      icon: <FlameIcon size={20} />,
+      icon: <Flame size={20} />,
       chip: "bg-orange-100 text-orange-500",
       value: demo.streak,
       color: "text-orange-500",
       label: t.statDays,
     },
     {
-      icon: <CalendarIcon />,
+      icon: <CalendarCheck size={22} />,
       chip: "bg-blue-100 text-blue-600",
       value: demo.sessions,
       color: "text-blue-600",
@@ -77,17 +77,10 @@ export default async function DashboardPage() {
   ];
 
   const quickAccess = [
-    { icon: <DumbbellIcon />, chip: "bg-blue-100 text-blue-600", label: t.trainers },
-    { icon: <ListIcon />, chip: "bg-emerald-100 text-emerald-600", label: t.verbList },
-    { icon: <RepeatIcon />, chip: "bg-violet-100 text-violet-600", label: t.review },
-    { icon: <GearIcon />, chip: "bg-zinc-100 text-zinc-500", label: t.settings },
-  ];
-
-  const navItems = [
-    { icon: <HomeIcon />, label: t.navHome, href: "/dashboard", active: true },
-    { icon: <DumbbellIcon />, label: t.navTrainers, href: "/coming-soon", active: false },
-    { icon: <ChartIcon size={20} />, label: t.navProgress, href: "/coming-soon", active: false },
-    { icon: <UserIcon />, label: t.navProfile, href: "/coming-soon", active: false },
+    { icon: <Dumbbell size={22} />, chip: "bg-blue-100 text-blue-600", label: t.trainers, href: "/coming-soon" },
+    { icon: <List size={22} />, chip: "bg-emerald-100 text-emerald-600", label: t.verbList, href: "/verbs" },
+    { icon: <RotateCw size={22} />, chip: "bg-violet-100 text-violet-600", label: t.review, href: "/coming-soon" },
+    { icon: <Settings size={22} />, chip: "bg-zinc-100 text-zinc-500", label: t.settings, href: "/coming-soon" },
   ];
 
   return (
@@ -101,7 +94,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-full border border-line/60 bg-white py-2.5 pr-4 pl-3 shadow-sm">
-              <FlameIcon size={20} className="text-orange-500" />
+              <Flame size={20} className="text-orange-500" />
               <span className="font-semibold text-blue-600">{demo.streak}</span>
             </span>
             <SignOutButton label={dict.auth.signOut} />
@@ -133,7 +126,7 @@ export default async function DashboardPage() {
             ))}
             <li className="flex flex-col items-center gap-1.5 px-1 text-center">
               <span className="flex size-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-                <ChartIcon size={20} />
+                <ChartColumn size={20} />
               </span>
               <span className="text-[11px] text-subtle">{t.statLevel}</span>
               <span className="text-2xl leading-none font-bold text-violet-600">{demo.level}</span>
@@ -154,7 +147,7 @@ export default async function DashboardPage() {
 
           <div className="mt-4 flex items-center gap-4">
             <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/95 text-violet-600">
-              <CardsIcon />
+              <WalletCards size={26} />
             </span>
             <div className="min-w-0">
               <p className="text-lg font-bold">{t.trainerName}</p>
@@ -167,7 +160,7 @@ export default async function DashboardPage() {
             className="mt-5 flex items-center justify-center gap-2 rounded-2xl bg-white py-3.5 font-medium text-blue-600 transition-opacity hover:opacity-90"
           >
             {t.continueAction}
-            <ChevronIcon />
+            <ChevronRight size={16} />
           </Link>
         </section>
 
@@ -179,7 +172,7 @@ export default async function DashboardPage() {
               href="/coming-soon"
               className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3.5 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100"
             >
-              <TargetIcon />
+              <Target size={16} />
               {t.changeGoal}
             </Link>
           </div>
@@ -210,14 +203,14 @@ export default async function DashboardPage() {
           {quickAccess.map((item) => (
             <Link
               key={item.label}
-              href="/coming-soon"
+              href={item.href}
               className="flex flex-col items-center gap-2.5 rounded-3xl border border-line/60 bg-white p-4 pt-5 text-center transition-shadow hover:shadow-md"
             >
               <span className={`flex size-14 items-center justify-center rounded-2xl ${item.chip}`}>
                 {item.icon}
               </span>
               <span className="text-sm font-medium">{item.label}</span>
-              <ChevronIcon className="text-subtle" />
+              <ChevronRight size={16} className="text-subtle" />
             </Link>
           ))}
         </div>
@@ -225,7 +218,7 @@ export default async function DashboardPage() {
         {/* язык интерфейса */}
         <div className="mt-4 flex items-center justify-between gap-3 rounded-3xl border border-line/60 bg-white px-5 py-4">
           <span className="flex items-center gap-2.5 text-sm font-medium">
-            <GlobeIcon className="text-subtle" />
+            <Globe size={20} className="text-subtle" />
             {dict.common.language}
           </span>
           <LanguageSwitcher current={locale} />
@@ -233,28 +226,14 @@ export default async function DashboardPage() {
       </div>
 
       {/* нижняя навигация */}
-      <nav className="fixed inset-x-0 bottom-0 border-t border-line/60 bg-white/95 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-md grid-cols-4 pb-[max(0px,env(safe-area-inset-bottom))]">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              aria-current={item.active ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-1 pt-3 pb-2.5 text-[11px] ${
-                item.active
-                  ? "font-semibold text-blue-600"
-                  : "text-subtle transition-colors hover:text-foreground"
-              }`}
-            >
-              {item.active && (
-                <span className="absolute top-0 h-1 w-10 rounded-b-full bg-blue-600" />
-              )}
-              {item.icon}
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <BottomNav
+        labels={{
+          home: t.navHome,
+          trainers: t.navTrainers,
+          progress: t.navProgress,
+          profile: t.navProfile,
+        }}
+      />
     </main>
   );
 }

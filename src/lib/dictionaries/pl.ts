@@ -20,6 +20,13 @@ const remaining: PluralForms = {
   other: "Jeszcze {count} czasownika do celu",
 };
 
+const verbCount: PluralForms = {
+  one: "{count} czasownik",
+  few: "{count} czasowniki",
+  many: "{count} czasowników",
+  other: "{count} czasownika",
+};
+
 const pl: Dictionary = {
   meta: {
     title: "Irregular Verbs — angielskie czasowniki nieregularne",
@@ -28,6 +35,7 @@ const pl: Dictionary = {
     dashboard: "Panel",
     signUp: "Rejestracja",
     comingSoon: "Wkrótce",
+    verbGroups: "Grupy czasowników",
   },
   common: {
     appName: "Irregular Verbs",
@@ -96,6 +104,14 @@ const pl: Dictionary = {
     title: "Wkrótce!",
     text: "Ta sekcja jest jeszcze w budowie — już niedługo pojawi się tu coś przydatnego.",
     back: "Wróć do panelu",
+  },
+  verbGroups: {
+    title: "Grupy czasowników",
+    subtitle: "Wszystkie czasowniki nieregularne podzielone na logiczne wzorce",
+    count: verbCount,
+    back: "Wszystkie grupy",
+    backToDashboard: "Wróć do panelu",
+    empty: "W tej grupie nie ma jeszcze czasowników",
   },
 };
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { RocketIcon } from "@/components/icons";
+import { Rocket } from "lucide-react";
 import { getDictionary } from "@/lib/dictionaries";
 import { getLocale } from "@/lib/i18n";
 import { requireSession } from "@/lib/session";
@@ -19,8 +19,8 @@ export default async function ComingSoonPage() {
   return (
     <main className="flex flex-1 items-center justify-center bg-white px-5">
       <div className="flex w-full max-w-md flex-col items-center pb-16 text-center">
-        <div className="flex size-24 items-center justify-center rounded-[28px] border border-line/60 bg-white shadow-sm">
-          <RocketIcon />
+        <div className="flex size-24 items-center justify-center rounded-[28px] border border-line/60 bg-white text-blue-500 shadow-sm">
+          <Rocket size={44} strokeWidth={1.7} />
         </div>
 
         <h1 className="mt-6 text-3xl font-bold tracking-tight">{dict.comingSoon.title}</h1>
