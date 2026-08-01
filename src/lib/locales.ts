@@ -6,7 +6,7 @@
  * Определение языка текущего запроса — в server-only `i18n.ts`.
  */
 
-export const locales = ["en", "be", "ru"] as const;
+export const locales = ["en", "be", "uk", "pl", "ru"] as const;
 
 export type Locale = (typeof locales)[number];
 
@@ -19,6 +19,8 @@ export const LOCALE_COOKIE = "lang";
 export const localeNames: Record<Locale, string> = {
   en: "EN",
   be: "BE",
+  uk: "UK",
+  pl: "PL",
   ru: "RU",
 };
 
@@ -45,7 +47,7 @@ export type PluralForms = {
   other: string;
 };
 
-// Intl.PluralRules — не самый дешёвый в создании объект, а языков всего три.
+// Intl.PluralRules — не самый дешёвый в создании объект, а языков всего пять.
 const pluralRules = new Map<Locale, Intl.PluralRules>();
 
 export function plural(locale: Locale, count: number, forms: PluralForms) {

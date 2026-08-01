@@ -12,11 +12,13 @@ const isDev = process.env.NODE_ENV === "development";
  *
  * В dev разрешаем любой локальный порт: если 3000 занят, Next.js молча
  * переезжает на 3001 — с жёстко прописанным адресом это давало "Invalid origin".
+ * Шаблон 192.168.*:* пускает и с других устройств домашней сети (IP по DHCP),
+ * аналогично allowedDevOrigins в next.config.ts.
  */
 function getBaseURL() {
   if (isDev && !process.env.BETTER_AUTH_URL) {
     return {
-      allowedHosts: ["localhost:*", "127.0.0.1:*"],
+      allowedHosts: ["localhost:*", "127.0.0.1:*", "192.168.*:*"],
       protocol: "http" as const,
       fallback: "http://localhost:3000",
     };
