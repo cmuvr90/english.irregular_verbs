@@ -82,3 +82,50 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+/// Неправильный глагол: три формы и переводы по локалям.
+/// translation — json вида {"en": "...", "be": "...", "uk": "...", ...},
+/// ключи совпадают с локалями из src/lib/locales.ts.
+model Verb {
+  id          String   @id @default(cuid())
+  form1       String   @map("form_1")
+  form2       String   @map("form_2")
+  form3       String   @map("form_3")
+  translation Json
+  createdAt   DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
+
+  groups VerbGroupLink[]
+
+  @@map("verbs")
+}
+
+/// Группа глаголов (например, «самые частые», «формы совпадают»).
+/// name и description — json с переводами, как translation у Verb.
+model VerbGroup {
+  id          String   @id @default(cuid())
+  /// Машинный ключ группы: стабильный идентификатор для кода и сидов.
+  key         String   @unique
+  name        Json
+  description Json
+  createdAt   DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
+
+  verbs VerbGroupLink[]
+
+  @@map("verb_groups")
+}
+
+/// Связь «многие-ко-многим»: один глагол может входить в несколько групп.
+model VerbGroupLink {
+  verbId      String @map("verb_id")
+  verbGroupId String @map("verb_group_id")
+
+  verb  Verb      @relation(fields: [verbId], references: [id], onDelete: Cascade)
+  group VerbGroup @relation(fields: [verbGroupId], references: [id], onDelete: Cascade)
+
+  @@id([verbId, verbGroupId])
+  // Составной PK покрывает поиск по verb_id; для выборки глаголов группы нужен свой индекс.
+  @@index([verbGroupId])
+  @@map("verb_group_links")
+}
