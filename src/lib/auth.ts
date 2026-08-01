@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
 import { prisma } from "@/lib/prisma";
+import { defaultRole } from "@/lib/roles";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -36,6 +37,11 @@ export const auth = betterAuth({
     provider: "postgresql",
     transaction: true,
   }),
+  user: {
+    additionalFields: {
+      role: { type: "string", defaultValue: defaultRole, input: false },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
