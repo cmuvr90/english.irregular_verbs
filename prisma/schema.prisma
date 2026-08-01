@@ -24,8 +24,9 @@ model User {
   createdAt     DateTime @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @db.Timestamptz(3)
 
-  sessions Session[]
-  accounts Account[]
+  sessions        Session[]
+  accounts        Account[]
+  trainerProgress TrainerVerbProgress[]
 
   @@map("user")
 }
@@ -95,7 +96,8 @@ model Verb {
   createdAt   DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt   DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
 
-  groups VerbGroupLink[]
+  groups          VerbGroupLink[]
+  trainerProgress TrainerVerbProgress[]
 
   // Один и тот же набор форм не должен попасть в базу дважды (а сид может
   // безопасно делать upsert). Одна form_1 при разных формах допустима: lie.
@@ -117,6 +119,68 @@ model VerbGroup {
   verbs VerbGroupLink[]
 
   @@map("verb_groups")
+}
+
+/// Тренажёр. settings — json с настройками интерфейса по локалям:
+/// {"ru": {"hint": "...", "steps": [{"position": 1, "icon": "eye", "name": "...", "description": "..."}]}, ...}
+/// icon — имя иконки lucide в kebab-case.
+model Trainer {
+  id          String   @id @default(cuid())
+  /// Машинный ключ тренажёра: стабильный идентификатор для кода и сидов.
+  key         String   @unique
+  name        Json
+  description Json
+  settings    Json
+  createdAt   DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
+
+  progress TrainerVerbProgress[]
+
+  @@map("trainers")
+}
+
+enum TrainerVerbStatus {
+  /// Показывался, но студент его ещё не оценивал.
+  none
+  /// Студент отправил на повторение.
+  repeat
+  /// Студент пометил как выученный.
+  learned
+
+  @@map("trainer_verb_status")
+}
+
+/// Прогресс студента по глаголу в конкретном тренажёре.
+/// Запись появляется при первом показе карточки (status = none).
+model TrainerVerbProgress {
+  id          String            @id @default(cuid())
+  userId      String            @map("user_id")
+  verbId      String            @map("verb_id")
+  trainerId   String            @map("trainer_id")
+  status      TrainerVerbStatus @default(none)
+  /// Сколько всего раз показывался.
+  count       Int               @default(0)
+  /// Сколько раз студент ответил «Знаю».
+  countKnow   Int               @default(0) @map("count_know")
+  /// Сколько раз студент отправил слово на повторение.
+  countRepeat Int               @default(0) @map("count_repeat")
+  /// Когда пометил слово как выученное (первый раз; при сбросе в repeat не трогаем).
+  learnedAt   DateTime?         @db.Timestamptz(3) @map("learned_at")
+  /// Когда показывался последний раз — по нему интервальная логика решает,
+  /// какие выученные глаголы вернуть в колоду первыми.
+  lastViewAt  DateTime?         @db.Timestamptz(3) @map("last_view_at")
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime          @updatedAt @db.Timestamptz(3) @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verb    Verb    @relation(fields: [verbId], references: [id], onDelete: Cascade)
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  // На пару (студент, глагол) в рамках тренажёра — одна запись; upsert в экшенах.
+  @@unique([userId, verbId, trainerId])
+  // Выборка «весь прогресс студента в тренажёре» — основной запрос страницы.
+  @@index([userId, trainerId])
+  @@map("trainer_verb_progress")
 }
 
 /// Связь «многие-ко-многим»: один глагол может входить в несколько групп.

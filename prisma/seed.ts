@@ -5,6 +5,7 @@ import { config } from "dotenv";
 config({ path: [".env.local", ".env"], quiet: true });
 
 import { groups } from "./seed-data/groups";
+import { trainers } from "./seed-data/trainers";
 import { verbs } from "./seed-data/verbs";
 
 async function main() {
@@ -42,8 +43,26 @@ async function main() {
   await prisma.verbGroupLink.deleteMany();
   await prisma.verbGroupLink.createMany({ data: links });
 
+  // Тренажёры: upsert по key, прогресс студентов не трогаем.
+  for (const trainer of trainers) {
+    await prisma.trainer.upsert({
+      where: { key: trainer.key },
+      create: {
+        key: trainer.key,
+        name: trainer.name,
+        description: trainer.description,
+        settings: trainer.settings,
+      },
+      update: {
+        name: trainer.name,
+        description: trainer.description,
+        settings: trainer.settings,
+      },
+    });
+  }
+
   console.log(
-    `Сид завершён: групп — ${groups.length}, глаголов — ${verbs.length}, связей — ${links.length}.`,
+    `Сид завершён: групп — ${groups.length}, глаголов — ${verbs.length}, связей — ${links.length}, тренажёров — ${trainers.length}.`,
   );
 }
 

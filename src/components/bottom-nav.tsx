@@ -20,7 +20,7 @@ export function BottomNav({ labels }: { labels: BottomNavLabels }) {
 
   const items = [
     { icon: <House size={22} />, label: labels.home, href: "/dashboard" },
-    { icon: <Dumbbell size={22} />, label: labels.trainers, href: "/coming-soon" },
+    { icon: <Dumbbell size={22} />, label: labels.trainers, href: "/trainers" },
     { icon: <ChartColumn size={20} />, label: labels.progress, href: "/coming-soon" },
     { icon: <User size={22} />, label: labels.profile, href: "/coming-soon" },
   ];

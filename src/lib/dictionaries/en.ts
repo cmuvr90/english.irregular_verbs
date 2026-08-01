@@ -47,6 +47,7 @@ const en = {
     signUp: "Sign up",
     comingSoon: "Coming soon",
     verbGroups: "Verb groups",
+    trainers: "Trainers",
   },
   common: {
     appName: "Irregular Verbs",
@@ -115,6 +116,20 @@ const en = {
     title: "Coming soon!",
     text: "This section is still in development — something useful will show up here shortly.",
     back: "Back to dashboard",
+  },
+  trainer: {
+    listTitle: "Trainers",
+    listSubtitle: "Pick how you want to practice",
+    howItWorks: "How the trainer works",
+    showAnswer: "Show answer",
+    know: "I know",
+    repeat: "Repeat",
+    practice: "Practice",
+    finishTitle: "Session complete!",
+    finishText: "Great job — keep it up.",
+    again: "One more round",
+    empty: "No verbs to practice yet",
+    back: "Back",
   },
   verbGroups: {
     title: "Verb groups",

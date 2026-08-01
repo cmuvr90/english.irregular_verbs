@@ -1,5 +1,6 @@
-import { MoveRight } from "lucide-react";
+import { Dumbbell, MoveRight } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
@@ -57,6 +58,16 @@ export default async function VerbGroupPage({ params }: Props) {
         <p className="mt-3 inline-flex rounded-full bg-blue-50 px-3.5 py-1.5 text-sm font-medium text-blue-600">
           {plural(locale, verbs.length, t.count)}
         </p>
+
+        {verbs.length > 0 && (
+          <Link
+            href={`/trainers/flashcards?group=${group.key}`}
+            className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
+          >
+            <Dumbbell size={18} />
+            {dict.trainer.practice}
+          </Link>
+        )}
 
         {verbs.length === 0 ? (
           <p className="mt-5 rounded-3xl border border-line/60 bg-white p-5 text-center text-subtle">

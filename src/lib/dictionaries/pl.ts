@@ -36,6 +36,7 @@ const pl: Dictionary = {
     signUp: "Rejestracja",
     comingSoon: "Wkrótce",
     verbGroups: "Grupy czasowników",
+    trainers: "Trenażery",
   },
   common: {
     appName: "Irregular Verbs",
@@ -104,6 +105,20 @@ const pl: Dictionary = {
     title: "Wkrótce!",
     text: "Ta sekcja jest jeszcze w budowie — już niedługo pojawi się tu coś przydatnego.",
     back: "Wróć do panelu",
+  },
+  trainer: {
+    listTitle: "Trenażery",
+    listSubtitle: "Wybierz, jak chcesz ćwiczyć",
+    howItWorks: "Jak działa trener",
+    showAnswer: "Pokaż odpowiedź",
+    know: "Wiem",
+    repeat: "Powtórz",
+    practice: "Ćwicz",
+    finishTitle: "Sesja ukończona!",
+    finishText: "Świetna robota — tak trzymaj.",
+    again: "Jeszcze raz",
+    empty: "Brak czasowników do ćwiczenia",
+    back: "Wstecz",
   },
   verbGroups: {
     title: "Grupy czasowników",

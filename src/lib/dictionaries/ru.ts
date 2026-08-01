@@ -36,6 +36,7 @@ const ru: Dictionary = {
     signUp: "Регистрация",
     comingSoon: "Скоро",
     verbGroups: "Группы глаголов",
+    trainers: "Тренажёры",
   },
   common: {
     appName: "Irregular Verbs",
@@ -104,6 +105,20 @@ const ru: Dictionary = {
     title: "Скоро!",
     text: "Этот раздел ещё в разработке — совсем скоро здесь появится что-то полезное.",
     back: "Вернуться в кабинет",
+  },
+  trainer: {
+    listTitle: "Тренажёры",
+    listSubtitle: "Выбери, как хочешь заниматься",
+    howItWorks: "Как работает тренажёр",
+    showAnswer: "Показать ответ",
+    know: "Знаю",
+    repeat: "Повторить",
+    practice: "Тренировать",
+    finishTitle: "Сессия завершена!",
+    finishText: "Отличная работа — так держать.",
+    again: "Ещё раз",
+    empty: "Пока нет глаголов для тренировки",
+    back: "Назад",
   },
   verbGroups: {
     title: "Группы глаголов",

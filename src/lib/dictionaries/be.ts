@@ -36,6 +36,7 @@ const be: Dictionary = {
     signUp: "Рэгістрацыя",
     comingSoon: "Хутка",
     verbGroups: "Групы дзеясловаў",
+    trainers: "Трэнажоры",
   },
   common: {
     appName: "Irregular Verbs",
@@ -104,6 +105,20 @@ const be: Dictionary = {
     title: "Хутка!",
     text: "Гэты раздзел яшчэ ў распрацоўцы — зусім хутка тут з'явіцца нешта карыснае.",
     back: "Вярнуцца ў кабінет",
+  },
+  trainer: {
+    listTitle: "Трэнажоры",
+    listSubtitle: "Выберы, як хочаш займацца",
+    howItWorks: "Як працуе трэнажор",
+    showAnswer: "Паказаць адказ",
+    know: "Ведаю",
+    repeat: "Паўтарыць",
+    practice: "Трэніраваць",
+    finishTitle: "Сесія завершана!",
+    finishText: "Выдатная праца — так трымаць.",
+    again: "Яшчэ раз",
+    empty: "Пакуль няма дзеясловаў для трэніроўкі",
+    back: "Назад",
   },
   verbGroups: {
     title: "Групы дзеясловаў",

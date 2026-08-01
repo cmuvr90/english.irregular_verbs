@@ -36,6 +36,7 @@ const uk: Dictionary = {
     signUp: "Реєстрація",
     comingSoon: "Незабаром",
     verbGroups: "Групи дієслів",
+    trainers: "Тренажери",
   },
   common: {
     appName: "Irregular Verbs",
@@ -104,6 +105,20 @@ const uk: Dictionary = {
     title: "Незабаром!",
     text: "Цей розділ ще в розробці — зовсім скоро тут з'явиться щось корисне.",
     back: "Повернутися в кабінет",
+  },
+  trainer: {
+    listTitle: "Тренажери",
+    listSubtitle: "Вибери, як хочеш займатися",
+    howItWorks: "Як працює тренажер",
+    showAnswer: "Показати відповідь",
+    know: "Знаю",
+    repeat: "Повторити",
+    practice: "Тренувати",
+    finishTitle: "Сесію завершено!",
+    finishText: "Чудова робота — так тримати.",
+    again: "Ще раз",
+    empty: "Поки немає дієслів для тренування",
+    back: "Назад",
   },
   verbGroups: {
     title: "Групи дієслів",
