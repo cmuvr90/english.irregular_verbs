@@ -5,6 +5,7 @@ import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/prisma";
 import { defaultRole } from "@/lib/roles";
 
+
 const isDev = process.env.NODE_ENV === "development";
 
 /**
