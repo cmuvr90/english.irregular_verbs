@@ -1,4 +1,4 @@
-import { ChevronRight, Dumbbell, WalletCards, type LucideIcon } from "lucide-react";
+import { ChevronRight, Dumbbell, ListChecks, WalletCards, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -18,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /** Иконка тренажёра по его key; для новых тренажёров — нейтральный фолбэк. */
 const trainerIcons: Record<string, LucideIcon> = {
   flashcards: WalletCards,
+  "multiple-choice": ListChecks,
 };
 
 export default async function TrainersPage() {

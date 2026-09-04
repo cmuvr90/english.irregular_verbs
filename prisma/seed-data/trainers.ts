@@ -82,4 +82,63 @@ export const trainers: SeedTrainer[] = [
       },
     },
   },
+  {
+    key: "multiple-choice",
+    name: {
+      en: "Choose the form",
+      be: "Выберы форму",
+      uk: "Обери форму",
+      pl: "Wybierz formę",
+      ru: "Выбери форму",
+    },
+    description: {
+      en: "Fill the gap in a sentence: pick the form that fits the context.",
+      be: "Запоўні пропуск у сказе: выберы форму, якая пасуе кантэксту.",
+      uk: "Заповни пропуск у реченні: обери форму, що пасує контексту.",
+      pl: "Uzupełnij lukę w zdaniu: wybierz formę pasującą do kontekstu.",
+      ru: "Заполни пропуск в предложении: выбери форму, подходящую по контексту.",
+    },
+    settings: {
+      en: {
+        hint: "Pick one of the three options",
+        steps: [
+          { position: 1, icon: "book-open", name: "Read the sentence", description: "Find the time marker: yesterday, every day, already." },
+          { position: 2, icon: "list-checks", name: "Choose the form", description: "Only one of the three fits the context." },
+          { position: 3, icon: "lightbulb", name: "Read the explanation", description: "It tells you why that form and not another." },
+        ],
+      },
+      be: {
+        hint: "Выберы адзін з трох варыянтаў",
+        steps: [
+          { position: 1, icon: "book-open", name: "Прачытай сказ", description: "Знайдзі маркер часу: yesterday, every day, already." },
+          { position: 2, icon: "list-checks", name: "Выберы форму", description: "Кантэксту адпавядае толькі адзін з трох варыянтаў." },
+          { position: 3, icon: "lightbulb", name: "Прачытай тлумачэнне", description: "Яно кажа, чаму менавіта гэтая форма." },
+        ],
+      },
+      uk: {
+        hint: "Обери один із трьох варіантів",
+        steps: [
+          { position: 1, icon: "book-open", name: "Прочитай речення", description: "Знайди маркер часу: yesterday, every day, already." },
+          { position: 2, icon: "list-checks", name: "Обери форму", description: "Контексту відповідає лише один із трьох варіантів." },
+          { position: 3, icon: "lightbulb", name: "Прочитай пояснення", description: "Воно каже, чому саме ця форма." },
+        ],
+      },
+      pl: {
+        hint: "Wybierz jedną z trzech opcji",
+        steps: [
+          { position: 1, icon: "book-open", name: "Przeczytaj zdanie", description: "Znajdź marker czasu: yesterday, every day, already." },
+          { position: 2, icon: "list-checks", name: "Wybierz formę", description: "Do kontekstu pasuje tylko jedna z trzech opcji." },
+          { position: 3, icon: "lightbulb", name: "Przeczytaj wyjaśnienie", description: "Mówi, dlaczego właśnie ta forma." },
+        ],
+      },
+      ru: {
+        hint: "Выбери один из трёх вариантов",
+        steps: [
+          { position: 1, icon: "book-open", name: "Прочитай предложение", description: "Найди маркер времени: yesterday, every day, already." },
+          { position: 2, icon: "list-checks", name: "Выбери форму", description: "Контексту подходит только один из трёх вариантов." },
+          { position: 3, icon: "lightbulb", name: "Прочитай разбор", description: "Он говорит, почему именно эта форма." },
+        ],
+      },
+    },
+  },
 ];

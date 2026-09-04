@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
+import type { TrainerSettings } from "@/lib/trainer-settings";
 
 /**
  * Тренажёр «Карточки» (flashcards). Компонент заточен ровно под этот тип
@@ -44,10 +45,7 @@ export type FlashcardProgress = {
   lastViewAt: number | null;
 };
 
-export type FlashcardsSettings = {
-  hint: string;
-  steps: { position: number; icon: string; name: string; description: string }[];
-};
+export type FlashcardsSettings = TrainerSettings;
 
 export type FlashcardsLabels = {
   howItWorks: string;

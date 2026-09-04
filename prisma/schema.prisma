@@ -28,6 +28,9 @@ model User {
   accounts        Account[]
   trainerProgress TrainerVerbProgress[]
 
+  sentencesCreated VerbSentence[] @relation("SentenceAuthor")
+  sentencesUpdated VerbSentence[] @relation("SentenceEditor")
+
   @@map("user")
 }
 
@@ -98,6 +101,7 @@ model Verb {
 
   groups          VerbGroupLink[]
   trainerProgress TrainerVerbProgress[]
+  sentences       VerbSentence[]
 
   // Один и тот же набор форм не должен попасть в базу дважды (а сид может
   // безопасно делать upsert). Одна form_1 при разных формах допустима: lie.
@@ -195,4 +199,62 @@ model VerbGroupLink {
   // Составной PK покрывает поиск по verb_id; для выборки глаголов группы нужен свой индекс.
   @@index([verbGroupId])
   @@map("verb_group_links")
+}
+
+enum SentenceStatus {
+  /// Черновик: студентам не показываем.
+  draft
+  published
+  /// Убрано из ротации, но прогресс и ссылки на предложение живы.
+  archived
+
+  @@map("sentence_status")
+}
+
+/// Предложение с пропуском под тренажёр «Выбери форму».
+///
+/// text содержит маркеры пропусков вида [a], [b]; на каждый маркер в options
+/// лежит массив вариантов: {"a": [{"text": "cuts", "correct": true}, ...]}.
+/// Массив, а не объект: jsonb не хранит порядок ключей, а порядок вариантов
+/// нужен админке при редактировании. Согласованность text и options база не
+/// проверяет — это делает validateSentence() из src/lib/sentence-options.ts,
+/// его обязаны звать и сид, и будущая админка.
+model VerbSentence {
+  id     String @id @default(cuid())
+  /// Глагол, который тренирует предложение: по нему собирается колода
+  /// (в том числе по группе) и пишется прогресс в trainer_verb_progress.
+  verbId String @map("verb_id")
+
+  text    String
+  options Json
+
+  /// Локализованный разбор, показывается после ответа: почему именно эта форма.
+  explanation Json?
+  /// Локализованный перевод предложения.
+  translation Json?
+
+  /// 1–3: от однозначных контекстов к спорным.
+  level  Int            @default(1)
+  status SentenceStatus @default(draft)
+  /// Пометка редактора для себя, студенту не видна.
+  note   String?
+
+  createdById String? @map("created_by_id")
+  updatedById String? @map("updated_by_id")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
+
+  verb      Verb  @relation(fields: [verbId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("SentenceAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("SentenceEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // Одно и то же предложение у глагола дважды не заводим: защита от дублей
+  // в админке и стабильный ключ для upsert из сида.
+  @@unique([verbId, text])
+  // Основной запрос тренажёра: опубликованные предложения по набору глаголов.
+  @@index([verbId, status])
+  // Автор фильтрует свои черновики в админке.
+  @@index([createdById])
+  @@map("verb_sentences")
 }

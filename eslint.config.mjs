@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Сгенерированный клиент Prisma — не наш код, линтовать нечего.
     "generated/**",
+    // Данные постгреса из docker compose: каталог принадлежит root,
+    // и обход всего проекта падает на нём с EACCES.
+    ".data/**",
   ]),
 ]);
 
