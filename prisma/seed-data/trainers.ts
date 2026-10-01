@@ -141,4 +141,63 @@ export const trainers: SeedTrainer[] = [
       },
     },
   },
+  {
+    key: "fill-blanks",
+    name: {
+      en: "Fill in the blanks",
+      be: "Запоўні пропускі",
+      uk: "Заповни пропуски",
+      pl: "Uzupełnij luki",
+      ru: "Заполни пропуски",
+    },
+    description: {
+      en: "A verb form is missing — type it in yourself.",
+      be: "Адной формы дзеяслова не хапае — упішы яе сам.",
+      uk: "Однієї форми дієслова бракує — впиши її сам.",
+      pl: "Brakuje formy czasownika — wpisz ją sam.",
+      ru: "Одной формы глагола не хватает — впиши её сам.",
+    },
+    settings: {
+      en: {
+        hint: "Type the form and press Enter",
+        steps: [
+          { position: 1, icon: "eye", name: "Look at the forms", description: "One form is hidden; identical forms are hidden together." },
+          { position: 2, icon: "pencil", name: "Type the missing one", description: "Spelling counts; for was/were either form is fine." },
+          { position: 3, icon: "circle-check", name: "Check yourself", description: "A mistake brings the verb back a few cards later." },
+        ],
+      },
+      be: {
+        hint: "Упішы форму і націсні Enter",
+        steps: [
+          { position: 1, icon: "eye", name: "Паглядзі на формы", description: "Адна форма схаваная; аднолькавыя формы хаваюцца разам." },
+          { position: 2, icon: "pencil", name: "Упішы пропушчаную", description: "Правапіс важны; для was/were падыдзе любая з формаў." },
+          { position: 3, icon: "circle-check", name: "Правер сябе", description: "Памылка верне дзеяслоў праз некалькі картак." },
+        ],
+      },
+      uk: {
+        hint: "Впиши форму й натисни Enter",
+        steps: [
+          { position: 1, icon: "eye", name: "Подивись на форми", description: "Одну форму сховано; однакові форми ховаються разом." },
+          { position: 2, icon: "pencil", name: "Впиши пропущену", description: "Правопис важливий; для was/were підійде будь-яка з форм." },
+          { position: 3, icon: "circle-check", name: "Перевір себе", description: "Помилка поверне дієслово через кілька карток." },
+        ],
+      },
+      pl: {
+        hint: "Wpisz formę i naciśnij Enter",
+        steps: [
+          { position: 1, icon: "eye", name: "Spójrz na formy", description: "Jedna forma jest ukryta; identyczne formy ukrywane są razem." },
+          { position: 2, icon: "pencil", name: "Wpisz brakującą", description: "Pisownia się liczy; przy was/were pasuje dowolna forma." },
+          { position: 3, icon: "circle-check", name: "Sprawdź się", description: "Błąd przywróci czasownik za kilka kart." },
+        ],
+      },
+      ru: {
+        hint: "Впиши форму и нажми Enter",
+        steps: [
+          { position: 1, icon: "eye", name: "Посмотри на формы", description: "Одна форма скрыта; одинаковые формы скрываются вместе." },
+          { position: 2, icon: "pencil", name: "Впиши пропущенную", description: "Важно написание; для was/were подойдёт любая из форм." },
+          { position: 3, icon: "circle-check", name: "Проверь себя", description: "Ошибка вернёт глагол через несколько карточек." },
+        ],
+      },
+    },
+  },
 ];

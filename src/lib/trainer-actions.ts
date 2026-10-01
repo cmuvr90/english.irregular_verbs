@@ -4,6 +4,13 @@ import { randomUUID } from "node:crypto";
 
 import { prisma } from "@/lib/prisma";
 import type { SentenceOption } from "@/lib/sentence-options";
+import {
+  hasAnswer,
+  isFormNumber,
+  matchesForm,
+  normalizeAnswer,
+  type FormNumber,
+} from "@/lib/verb-forms";
 import { getSession } from "@/lib/session";
 
 /**
@@ -42,15 +49,24 @@ export async function recordCardView(trainerId: string, verbId: string) {
 }
 
 /**
+ * Что ответил студент — для журнала ошибок:
+ * - «Выбери форму»: предложение и выбранный вариант;
+ * - «Заполни пропуски»: какую форму спрашивали и что студент вписал.
+ */
+export type AnswerChoice =
+  | { sentenceId: string; chosen: string }
+  | { form: FormNumber; chosen: string };
+
+/**
  * Студент оценил карточку: «Знаю» → learned, «Повторить» → repeat.
- * choice — что выбрал студент в «Выбери форму». Неверный ответ уходит
- * в журнал ошибок: по нему админка показывает, когда и в чём студент ошибается.
+ * Неверный ответ уходит в журнал ошибок: по нему админка показывает,
+ * когда и в чём студент ошибается.
  */
 export async function answerCard(
   trainerId: string,
   verbId: string,
   answer: "know" | "repeat",
-  choice?: { sentenceId: string; chosen: string },
+  choice?: AnswerChoice,
 ) {
   const session = await getSession();
   if (!session) return;
@@ -106,28 +122,62 @@ export async function answerCard(
 /** Повтор той же ошибки чаще этого — двойной тап или скрипт, в журнал не пишем. */
 const MISTAKE_DEDUP_MS = 5_000;
 
+/** Вписанный ответ храним не длиннее этого: это слово, а не сочинение. */
+const MAX_TYPED_LENGTH = 60;
+
 /**
  * Строка в журнал ошибок. Отдельный try: сбой журнала не должен помешать
  * записи прогресса, ради которой экшен и вызван.
  *
- * sentenceId и chosen приходят с клиента, поэтому сверяем их с базой:
- * предложение должно принадлежать этому глаголу, а chosen — быть одним из
- * его неверных вариантов. Не сошлось — пишем ошибку без них, а не мусор,
- * который потом покажется админу как «типичная ошибка».
+ * Ответ приходит с клиента, поэтому сверяем его с базой:
+ * - предложение должно принадлежать этому глаголу, а chosen — быть одним
+ *   из его неверных вариантов;
+ * - вписанная форма должна действительно не совпадать с формой глагола.
+ * Не сошлось — пишем ошибку без подробностей, а не мусор, который потом
+ * покажется админу как «типичная ошибка».
  */
 async function logMistake(
   userId: string,
   trainerId: string,
   verbId: string,
-  choice?: { sentenceId: string; chosen: string },
+  choice?: AnswerChoice,
 ) {
   try {
     let sentenceId: string | null = null;
     let chosen: string | null = null;
+    let form: FormNumber | null = null;
 
-    if (choice && typeof choice.sentenceId === "string") {
+    // Экшен — публичный эндпоинт: choice может прийти чем угодно, а не только
+    // объектом из нашего компонента. `in` на строке бросил бы TypeError, и
+    // вместе с подробностями пропала бы сама ошибка.
+    const details = typeof choice === "object" && choice !== null ? choice : null;
+    // Форма ответа должна соответствовать тренажёру: вписанная форма —
+    // только у «Заполни пропуски», предложение — только у «Выбери форму».
+    const trainerKey = details
+      ? (await prisma.trainer.findUnique({ where: { id: trainerId }, select: { key: true } }))?.key
+      : null;
+
+    if (trainerKey === "fill-blanks" && details && "form" in details && isFormNumber(details.form)) {
+      const askedForm = details.form;
+      const verb = await prisma.verb.findUnique({
+        where: { id: verbId },
+        select: { form1: true, form2: true, form3: true },
+      });
+      const typed = typeof details.chosen === "string" ? normalizeAnswer(details.chosen) : "";
+      // Пустой ответ («/», пробелы) ошибкой в написании не считаем; верный —
+      // тем более: клиент не должен суметь записать студенту чужую ошибку.
+      if (verb && hasAnswer(typed) && !matchesForm(typed, verb, askedForm)) {
+        form = askedForm;
+        chosen = typed.slice(0, MAX_TYPED_LENGTH);
+      }
+    } else if (
+      trainerKey === "multiple-choice" &&
+      details &&
+      "sentenceId" in details &&
+      typeof details.sentenceId === "string"
+    ) {
       const sentence = await prisma.verbSentence.findFirst({
-        where: { id: choice.sentenceId, verbId },
+        where: { id: details.sentenceId, verbId },
         select: { id: true, options: true },
       });
       if (sentence) {
@@ -136,8 +186,8 @@ async function logMistake(
           .flatMap((variants) => (Array.isArray(variants) ? variants : []))
           .filter((option): option is SentenceOption => isWrongOption(option))
           .map((option) => option.text);
-        if (typeof choice.chosen === "string" && wrong.includes(choice.chosen)) {
-          chosen = choice.chosen;
+        if (typeof details.chosen === "string" && wrong.includes(details.chosen)) {
+          chosen = details.chosen;
         }
       }
     }
@@ -149,6 +199,7 @@ async function logMistake(
         verbId,
         sentenceId,
         chosen,
+        form,
         createdAt: { gte: new Date(Date.now() - MISTAKE_DEDUP_MS) },
       },
       select: { id: true },
@@ -156,7 +207,7 @@ async function logMistake(
     if (duplicate) return;
 
     await prisma.trainerMistake.create({
-      data: { userId, trainerId, verbId, sentenceId, chosen },
+      data: { userId, trainerId, verbId, sentenceId, chosen, form },
     });
   } catch (error) {
     console.error("logMistake failed:", error);

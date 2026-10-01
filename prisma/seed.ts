@@ -10,6 +10,16 @@ import { sentences } from "./seed-data/sentences";
 import { trainers } from "./seed-data/trainers";
 import { verbs } from "./seed-data/verbs";
 
+/**
+ * Сид только наполняет: создаёт то, чего в базе нет, и не трогает то, что
+ * уже есть. Он запускается на каждой сборке (npm run build), а контент
+ * после первого наполнения правят в админке — обновление существующих
+ * записей откатывало бы эти правки при каждом деплое. Поэтому у всех
+ * upsert ниже пустой update.
+ *
+ * Изменить уже существующую запись из seed-data — правкой в админке
+ * (или удалить запись там же, и сид создаст её заново).
+ */
 async function main() {
   const { prisma } = await import("../src/lib/prisma");
 
@@ -19,7 +29,7 @@ async function main() {
     const row = await prisma.verbGroup.upsert({
       where: { key: group.key },
       create: { key: group.key, name: group.name, description: group.description },
-      update: { name: group.name, description: group.description },
+      update: {},
     });
     groupIdByKey.set(group.key, row.id);
   }
@@ -38,7 +48,7 @@ async function main() {
     const row = await prisma.verb.upsert({
       where: { form1_form2_form3: { form1, form2, form3 } },
       create: { form1, form2, form3, translation: verb.translation },
-      update: { translation: verb.translation },
+      update: {},
     });
 
     if (verbIdByForm1.has(form1)) ambiguousForm1.add(form1);
@@ -67,7 +77,8 @@ async function main() {
     ]);
   }
 
-  // Тренажёры: upsert по key, прогресс студентов не трогаем.
+  // Тренажёры: создаём недостающие (так на проде появляется новый тренажёр),
+  // тексты существующих правят в админке.
   for (const trainer of trainers) {
     await prisma.trainer.upsert({
       where: { key: trainer.key },
@@ -77,21 +88,17 @@ async function main() {
         description: trainer.description,
         settings: trainer.settings,
       },
-      update: {
-        name: trainer.name,
-        description: trainer.description,
-        settings: trainer.settings,
-      },
+      update: {},
     });
   }
 
   // Предложения тренажёра «Выбери форму». Валидатор тот же, что дёрнет
   // будущая админка: формат пропусков описан в одном месте, а не в двух.
   //
-  // Сид только добавляет и обновляет: sentences.ts пополняется от прогона к
-  // прогону, а чистка чужого удалять не берётся. Плата за это — правка text
-  // (upsert идёт по паре verb_id + text) оставляет в базе старую строку;
-  // убирать её нужно руками или из админки.
+  // Сид только добавляет: sentences.ts пополняется от прогона к прогону, а
+  // существующие предложения правят в админке. Правка text в sentences.ts
+  // (upsert идёт по паре verb_id + text) создаст новую строку рядом со
+  // старой — старую убирают из админки.
   for (const sentence of sentences) {
     const problems = validateSentence(sentence.text, sentence.options);
     if (problems.length > 0) {
@@ -121,9 +128,7 @@ async function main() {
       // Контент из сида вычитан, поэтому сразу published: черновики — это то,
       // что заведут через админку.
       create: { verbId, text: sentence.text, ...data, status: "published" },
-      // status в update намеренно нет: снятое с ротации предложение (archived)
-      // должно таким и остаться, иначе сид молча вернёт его студентам.
-      update: data,
+      update: {},
     });
   }
 

@@ -7,6 +7,7 @@ import {
   Eye,
   Lightbulb,
   ListChecks,
+  PenLine,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ export const stepIcons: Record<string, LucideIcon> = {
   "book-open": BookOpen,
   "list-checks": ListChecks,
   lightbulb: Lightbulb,
+  pencil: PenLine,
 };
 
 /**
@@ -34,6 +36,7 @@ export const stepIcons: Record<string, LucideIcon> = {
 const trainerIcons: Record<string, LucideIcon> = {
   flashcards: WalletCards,
   "multiple-choice": ListChecks,
+  "fill-blanks": PenLine,
 };
 
 export function trainerIcon(key: string): LucideIcon {

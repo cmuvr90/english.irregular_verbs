@@ -201,8 +201,11 @@ model TrainerMistake {
   verbId    String  @map("verb_id")
   /// Предложение «Выбери форму»; у карточек («Повторить») — NULL.
   sentenceId String? @map("sentence_id")
-  /// Неверный вариант, который выбрал студент в «Выбери форму».
+  /// Ответ студента: неверный вариант в «Выбери форму» или то, что он
+  /// вписал в «Заполни пропуски».
   chosen    String?
+  /// «Заполни пропуски»: какую форму спрашивали (1, 2 или 3); иначе — NULL.
+  form      Int?
   createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
 
   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)

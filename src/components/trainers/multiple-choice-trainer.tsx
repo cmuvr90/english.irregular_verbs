@@ -20,6 +20,7 @@ import {
   type SentenceOptions,
 } from "@/lib/sentence-options";
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
+import { buildDeck, mulberry32, REPEAT_AFTER, shuffle } from "@/lib/trainer-deck";
 import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
 
@@ -99,31 +100,6 @@ const stepChips = [
 /** Подписи вариантов, как в бумажных тестах: a) b) c). */
 const OPTION_LETTERS = "abcdefgh";
 
-/** Каждый пятый показ — предложение с уже выученным глаголом. */
-const LEARNED_EVERY = 5;
-/** Неверный ответ возвращает предложение в колоду через столько позиций. */
-const REPEAT_AFTER = 5;
-
-/** mulberry32 — маленький детерминированный ГПСЧ по числовому зерну. */
-function mulberry32(seed: number) {
-  let state = Math.floor(seed * 2 ** 32) || 1;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffle<T>(items: T[], random: () => number): T[] {
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
-
 /** Задание в колоде: предложение плюс уже перемешанные варианты. */
 type Question = {
   sentence: ChoiceSentence;
@@ -150,37 +126,22 @@ function buildQuestion(sentence: ChoiceSentence, random: () => number): Question
   return { sentence, blankKey, options: shuffle(options, random) };
 }
 
-function buildDeck(
+/** Порядок предложений — общий для тренажёров (trainer-deck), варианты перемешиваются здесь. */
+function buildQuestions(
   sentences: ChoiceSentence[],
   statuses: Map<string, "none" | "repeat" | "learned">,
   lastViewAt: Map<string, number | null>,
   random: () => number,
 ): Question[] {
-  const toQuestion = (sentence: ChoiceSentence) => buildQuestion(sentence, random);
-
-  const fresh = sentences.filter((s) => statuses.get(s.verbId) !== "learned");
-  const learned = sentences
-    .filter((s) => statuses.get(s.verbId) === "learned")
-    // Давно не виденные — первыми в очереди на «вкрапление».
-    .sort((a, b) => (lastViewAt.get(a.verbId) ?? 0) - (lastViewAt.get(b.verbId) ?? 0));
-
-  const learnedQuestions = learned.map(toQuestion).filter((q): q is Question => q !== null);
-
-  // Всё выучено — сессия целиком из повторения выученных.
-  if (fresh.length === 0) return learnedQuestions;
-
-  const base = shuffle(fresh, random)
-    .map(toQuestion)
-    .filter((q): q is Question => q !== null);
-
-  const mixCount = Math.min(learnedQuestions.length, Math.floor(base.length / LEARNED_EVERY));
-  const deck: Question[] = [];
-  let mixed = 0;
-  base.forEach((question, i) => {
-    deck.push(question);
-    if ((i + 1) % LEARNED_EVERY === 0 && mixed < mixCount) deck.push(learnedQuestions[mixed++]);
+  // Битые предложения отсеиваем до сборки колоды, а не после: иначе доля
+  // подмешанных выученных считалась бы от заданий, которых не будет.
+  const playable = sentences.filter((sentence) => {
+    const [blankKey] = parseBlanks(sentence.text);
+    return Boolean(blankKey && sentence.options[blankKey]?.length);
   });
-  return deck;
+  return buildDeck(playable, (s) => s.verbId, statuses, lastViewAt, random)
+    .map((sentence) => buildQuestion(sentence, random))
+    .filter((q): q is Question => q !== null);
 }
 
 export function MultipleChoiceTrainer({
@@ -209,12 +170,14 @@ export function MultipleChoiceTrainer({
   // Первая колода детерминирована серверным seed (см. проп), поэтому её можно
   // собрать прямо в инициализаторе — SSR и клиент получат одинаковый порядок.
   const [deck, setDeck] = useState<Question[]>(() =>
-    buildDeck(sentences, statuses, lastViews, mulberry32(seed)),
+    buildQuestions(sentences, statuses, lastViews, mulberry32(seed)),
   );
   const [index, setIndex] = useState(0);
   /** Текст выбранного варианта; null — на задание ещё не ответили. */
   const [picked, setPicked] = useState<string | null>(null);
   const [finished, setFinished] = useState(false);
+  /** Номер прохода: после «Ещё раз» показ первой карточки пишется заново. */
+  const [round, setRound] = useState(0);
   const [learnedCount, setLearnedCount] = useState(
     () => progress.filter((p) => p.status === "learned").length,
   );
@@ -225,10 +188,11 @@ export function MultipleChoiceTrainer({
 
   // «Ещё раз»: уже на клиенте, можно перемешать по-настоящему случайно.
   const restart = useCallback(() => {
-    setDeck(buildDeck(sentences, statuses, lastViews, mulberry32(Math.random())));
+    setDeck(buildQuestions(sentences, statuses, lastViews, mulberry32(Math.random())));
     setIndex(0);
     setPicked(null);
     setFinished(false);
+    setRound((n) => n + 1);
     setSessionCorrect(0);
     setSessionWrong(0);
   }, [sentences, statuses, lastViews]);
@@ -244,7 +208,7 @@ export function MultipleChoiceTrainer({
     if (finished) return;
     const current = deck[index];
     if (!current) return;
-    const key = `${index}:${current.sentence.id}`;
+    const key = `${round}:${index}:${current.sentence.id}`;
     if (lastViewKey.current === key) return;
     lastViewKey.current = key;
     // Отметка времени ставится здесь, а не в ответе: на сервере lastViewAt
@@ -254,7 +218,7 @@ export function MultipleChoiceTrainer({
     recordCardView(trainerId, current.sentence.verbId).catch(() => {
       // Сеть моргнула — показ не записан; некритично для тренировки.
     });
-  }, [trainerId, deck, index, finished, lastViews]);
+  }, [trainerId, deck, index, finished, lastViews, round]);
 
   const onPick = (option: SentenceOption) => {
     // Повторные тапы после ответа игнорируем: результат уже зафиксирован.

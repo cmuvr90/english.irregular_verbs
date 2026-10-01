@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { FillBlanksTrainer } from "@/components/trainers/fill-blanks-trainer";
 import { FlashcardsTrainer } from "@/components/trainers/flashcards-trainer";
 import {
   MultipleChoiceTrainer,
@@ -240,6 +241,58 @@ export default async function TrainerPage({ params, searchParams }: Props) {
             mistakes: t.mistakes,
             finishTitle: t.finishTitle,
             scoreText: t.scoreText,
+            again: t.again,
+            empty: t.empty,
+            back: t.back,
+          }}
+          backHref={backHref}
+          seed={seed}
+        />
+
+        <BottomNav labels={navLabels(dict)} />
+      </main>
+    );
+  }
+
+  if (trainer.key === "fill-blanks") {
+    const settings = resolveSettings(trainer.settings, locale);
+    if (!settings) notFound();
+
+    // Колода та же, что у карточек: все глаголы или глаголы группы.
+    const verbs = await loadVerbs(groupKey);
+    const progress = await loadProgress(
+      session.user.id,
+      trainer.id,
+      verbs.map((verb) => verb.id),
+    );
+
+    return (
+      <main className="flex-1 bg-white">
+        <FillBlanksTrainer
+          trainerId={trainer.id}
+          title={title}
+          settings={settings}
+          verbs={verbs.map((verb) => ({
+            id: verb.id,
+            form1: verb.form1,
+            form2: verb.form2,
+            form3: verb.form3,
+            translation: pickLocalized(verb.translation, locale),
+          }))}
+          progress={progress}
+          labels={{
+            howItWorks: t.howItWorks,
+            fillPlaceholder: t.fillPlaceholder,
+            check: t.check,
+            yourAnswer: t.yourAnswer,
+            correct: t.correct,
+            wrong: t.wrong,
+            correctAnswer: t.correctAnswer,
+            next: t.next,
+            finishTitle: t.finishTitle,
+            scoreText: t.scoreText,
+            correctCount: t.correctCount,
+            mistakes: t.mistakes,
             again: t.again,
             empty: t.empty,
             back: t.back,

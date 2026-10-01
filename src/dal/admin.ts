@@ -270,8 +270,16 @@ export async function getUserStats(userId: string) {
 
   const since = await statsSince();
 
-  const [mistakesDaily, learnedDaily, progress, trainers, mistakes, recent, problemVerbs] =
-    await Promise.all([
+  const [
+    mistakesDaily,
+    learnedDaily,
+    progress,
+    trainers,
+    mistakes,
+    recent,
+    problemVerbs,
+    typedMistakes,
+  ] = await Promise.all([
       prisma.$queryRaw<DailyCount[]>`
         SELECT to_char(created_at AT TIME ZONE ${STATS_TIME_ZONE}, 'YYYY-MM-DD') AS day,
                count(*)::int AS count
@@ -314,6 +322,7 @@ export async function getUserStats(userId: string) {
         select: {
           id: true,
           chosen: true,
+          form: true,
           createdAt: true,
           trainer: { select: { key: true, name: true } },
           verb: { select: { id: true, form1: true, form2: true, form3: true } },
@@ -336,7 +345,22 @@ export async function getUserStats(userId: string) {
           verb: { select: { id: true, form1: true, form2: true, form3: true } },
         },
       }),
+      // «Заполни пропуски»: какую форму какого глагола и как студент писал неверно.
+      prisma.trainerMistake.groupBy({
+        by: ["verbId", "form", "chosen"],
+        where: { userId, form: { not: null }, chosen: { not: null } },
+        _count: { _all: true },
+        _max: { createdAt: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 10,
+      }),
     ]);
+
+  const typedVerbIds = typedMistakes.map((row) => row.verbId);
+  const typedVerbs = await prisma.verb.findMany({
+    where: { id: { in: typedVerbIds } },
+    select: { id: true, form1: true, form2: true, form3: true },
+  });
 
   const sentenceIds = mistakes.flatMap((row) => (row.sentenceId ? [row.sentenceId] : []));
   const sentences = await prisma.verbSentence.findMany({
@@ -354,5 +378,7 @@ export async function getUserStats(userId: string) {
     sentences,
     recent,
     problemVerbs,
+    typedMistakes,
+    typedVerbs,
   };
 }

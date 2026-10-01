@@ -271,13 +271,18 @@ export async function deleteSentence(id: string) {
  * Права проверяются в обход кеша сессии (getFreshSession), поэтому снятая
  * роль закрывает админку сразу, без пятиминутной задержки.
  */
-export async function setUserRole(userId: string, formData: FormData) {
+export async function setUserRole(
+  userId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const session = await assertAdmin();
   const role = formData.get("role");
 
-  if (!(roles as readonly unknown[]).includes(role)) return;
-  if (userId === session.user.id) return;
+  if (!(roles as readonly unknown[]).includes(role)) return { error: "Неизвестная роль" };
+  if (userId === session.user.id) return { error: "Свою роль менять нельзя" };
 
+  let lastAdmin = false;
   try {
     await prisma.$transaction(
       async (tx) => {
@@ -285,19 +290,28 @@ export async function setUserRole(userId: string, formData: FormData) {
           const otherAdmins = await tx.user.count({
             where: { role: "admin", id: { not: userId } },
           });
-          if (otherAdmins === 0) return;
+          if (otherAdmins === 0) {
+            lastAdmin = true;
+            return;
+          }
         }
         await tx.user.update({ where: { id: userId }, data: { role: role as Role } });
       },
       { isolationLevel: "Serializable" },
     );
   } catch (error) {
-    // P2025 — пользователя удалили; P2034 — конфликт с параллельной сменой
-    // ролей: ничего не меняем, админ увидит актуальное состояние после обновления.
-    const code = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : null;
-    if (code !== "P2025" && code !== "P2034") throw error;
+    const known = knownError(error, { P2025: "Пользователь удалён — обновите страницу" });
+    if (known) return known;
+    // P2034 — конфликт с параллельной сменой ролей: Postgres откатил одну из них.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      return { error: "Роли меняли одновременно — обновите страницу и повторите" };
+    }
+    throw error;
   }
+
+  if (lastAdmin) return { error: "Это последний админ — разжаловать нельзя" };
   revalidatePath("/admin/users");
+  return { saved: true };
 }
 
 // ── Тренажёры ───────────────────────────────────────────────────────────────

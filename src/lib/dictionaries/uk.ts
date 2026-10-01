@@ -129,6 +129,9 @@ const uk: Dictionary = {
     next: "Далі",
     mistakes: "Помилки",
     scoreText: "{correct} з {total} відповідей правильні.",
+    fillPlaceholder: "Впиши форму, якої бракує",
+    check: "Перевірити",
+    yourAnswer: "Твоя відповідь",
   },
   verbGroups: {
     title: "Групи дієслів",

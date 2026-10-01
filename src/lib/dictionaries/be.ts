@@ -129,6 +129,9 @@ const be: Dictionary = {
     next: "Далей",
     mistakes: "Памылкі",
     scoreText: "{correct} з {total} адказаў правільныя.",
+    fillPlaceholder: "Упішы форму, якой не хапае",
+    check: "Праверыць",
+    yourAnswer: "Твой адказ",
   },
   verbGroups: {
     title: "Групы дзеясловаў",

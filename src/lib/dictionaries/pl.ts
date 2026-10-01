@@ -129,6 +129,9 @@ const pl: Dictionary = {
     next: "Dalej",
     mistakes: "Błędy",
     scoreText: "{correct} z {total} odpowiedzi poprawnych.",
+    fillPlaceholder: "Wpisz brakującą formę",
+    check: "Sprawdź",
+    yourAnswer: "Twoja odpowiedź",
   },
   verbGroups: {
     title: "Grupy czasowników",

@@ -114,6 +114,7 @@ export default async function UserStatsPage({ params }: Props) {
   const learned30 = learnedDays.reduce((sum, d) => sum + d.count, 0);
 
   const sentenceById = new Map(stats.sentences.map((s) => [s.id, s]));
+  const typedVerbById = new Map(stats.typedVerbs.map((v) => [v.id, v]));
 
   return (
     <>
@@ -262,6 +263,61 @@ export default async function UserStatsPage({ params }: Props) {
 
       <section className="flex flex-col gap-3">
         <div>
+          <h2 className="text-base font-bold">Ошибки в написании форм</h2>
+          <p className="text-sm text-subtle">
+            «Заполни пропуски»: какую форму студент писал неверно и как именно
+          </p>
+        </div>
+        <TableCard>
+          <THead>
+            <Th>Глагол</Th>
+            <Th>Форма</Th>
+            <Th>Написал</Th>
+            <Th>Верно</Th>
+            <Th className="text-right">Раз</Th>
+            <Th>Последний</Th>
+          </THead>
+          <TBody>
+            {stats.typedMistakes.length === 0 ? (
+              <EmptyRow colSpan={6}>Ошибок в написании пока нет.</EmptyRow>
+            ) : (
+              stats.typedMistakes.map((row) => {
+                const verb = typedVerbById.get(row.verbId);
+                const form = row.form ?? 1;
+                return (
+                  <tr key={`${row.verbId}:${row.form}:${row.chosen}`}>
+                    <Td className="whitespace-nowrap">
+                      {verb ? (
+                        <Link href={`/admin/verbs/${verb.id}`} className="font-semibold hover:underline">
+                          <span className="text-blue-600">{verb.form1}</span>
+                        </Link>
+                      ) : (
+                        <span className="text-subtle">удалён</span>
+                      )}
+                    </Td>
+                    <Td>
+                      <Badge tone="mono">V{form}</Badge>
+                    </Td>
+                    <Td className="font-semibold text-orange-800 line-through decoration-orange-400">
+                      {row.chosen}
+                    </Td>
+                    <Td className="font-semibold text-blue-700">
+                      {verb ? [verb.form1, verb.form2, verb.form3][form - 1] : "—"}
+                    </Td>
+                    <Td className="text-right font-mono text-xs tabular-nums">{row._count._all}</Td>
+                    <Td className="whitespace-nowrap text-subtle">
+                      {row._max.createdAt ? dateTimeFormat.format(row._max.createdAt) : "—"}
+                    </Td>
+                  </tr>
+                );
+              })
+            )}
+          </TBody>
+        </TableCard>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div>
           <h2 className="text-base font-bold">Трудные глаголы</h2>
           <p className="text-sm text-subtle">
             Чаще всего уходили на повторение — за всё время занятий
@@ -329,6 +385,16 @@ export default async function UserStatsPage({ params }: Props) {
                         <Filled text={row.sentence.text} chosen={row.chosen} />{" "}
                         <span className="text-xs text-subtle">
                           → верно: {firstCorrectAnswer(row.sentence.text, row.sentence.options) ?? "—"}
+                        </span>
+                      </>
+                    ) : row.form && row.chosen ? (
+                      <>
+                        <Badge tone="mono">V{row.form}</Badge>{" "}
+                        <span className="font-semibold text-orange-800 line-through decoration-orange-400">
+                          {row.chosen}
+                        </span>{" "}
+                        <span className="text-xs text-subtle">
+                          → верно: {[row.verb.form1, row.verb.form2, row.verb.form3][row.form - 1]}
                         </span>
                       </>
                     ) : row.chosen ? (

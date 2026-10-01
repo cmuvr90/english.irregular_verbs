@@ -140,6 +140,9 @@ const en = {
     next: "Next",
     mistakes: "Mistakes",
     scoreText: "{correct} of {total} answers correct.",
+    fillPlaceholder: "Type the missing form",
+    check: "Check",
+    yourAnswer: "Your answer",
   },
   verbGroups: {
     title: "Verb groups",

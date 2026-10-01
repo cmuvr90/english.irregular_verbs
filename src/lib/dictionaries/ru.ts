@@ -129,6 +129,9 @@ const ru: Dictionary = {
     next: "Дальше",
     mistakes: "Ошибки",
     scoreText: "{correct} из {total} ответов верные.",
+    fillPlaceholder: "Впиши недостающую форму",
+    check: "Проверить",
+    yourAnswer: "Твой ответ",
   },
   verbGroups: {
     title: "Группы глаголов",

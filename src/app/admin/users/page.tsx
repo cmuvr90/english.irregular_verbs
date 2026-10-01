@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { RoleForm } from "@/components/admin/role-form";
 import {
   Badge,
-  buttonClass,
   EmptyRow,
   FilterBar,
-  filterSelectClass,
   PageHeader,
   PillTitle,
   TableCard,
@@ -16,10 +15,8 @@ import {
   THead,
 } from "@/components/admin/ui";
 import { getUsersActivity, listUsers, STATS_DAYS, STATS_TIME_ZONE, USERS_LIMIT } from "@/dal/admin";
-import { setUserRole } from "@/lib/admin-actions";
 import { searchParam } from "@/lib/admin-form";
 import { accuracy } from "@/lib/admin-stats";
-import { roles } from "@/lib/roles";
 import { requireAdmin } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Пользователи" };
@@ -94,23 +91,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                       // Свою роль не меняем — см. setUserRole.
                       <Badge tone={user.role}>{user.role} · вы</Badge>
                     ) : (
-                      <form action={setUserRole.bind(null, user.id)} className="flex items-center gap-1.5">
-                        <select
-                          name="role"
-                          defaultValue={user.role}
-                          aria-label="Роль"
-                          className={filterSelectClass}
-                        >
-                          {roles.map((role) => (
-                            <option key={role} value={role}>
-                              {role}
-                            </option>
-                          ))}
-                        </select>
-                        <button type="submit" className={buttonClass.outline}>
-                          Сохранить
-                        </button>
-                      </form>
+                      <RoleForm userId={user.id} role={user.role} />
                     )}
                   </Td>
                 </tr>

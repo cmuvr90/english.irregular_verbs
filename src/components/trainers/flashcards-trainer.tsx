@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
+import { buildDeck, mulberry32, REPEAT_AFTER } from "@/lib/trainer-deck";
 import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
 
@@ -20,11 +21,8 @@ import type { TrainerSettings } from "@/lib/trainer-settings";
  * тренажёра: читает его settings (подсказка + шаги инструкции) и работает
  * с любым списком глаголов — группой или всеми вперемешку.
  *
- * Колода собирается с учётом прогресса студента (интервальное повторение):
- * - невиданные и «повторить» — основа колоды, вперемешку;
- * - выученные подмешиваются редко (примерно 1 к 5), первыми — те,
- *   что дольше всего не показывались;
- * - карточка с ответом «Повторить» возвращается в колоду через несколько позиций.
+ * Колода собирается с учётом прогресса студента (см. src/lib/trainer-deck.ts);
+ * карточка с ответом «Повторить» возвращается в колоду через несколько позиций.
  */
 
 export type FlashcardVerb = {
@@ -72,62 +70,13 @@ type Props = {
   seed: number;
 };
 
+const verbId = (verb: FlashcardVerb) => verb.id;
+
 const stepChips = [
   "bg-violet-100 text-violet-600",
   "bg-blue-100 text-blue-600",
   "bg-emerald-100 text-emerald-600",
 ];
-
-/** Каждый пятый показ — выученная карточка. */
-const LEARNED_EVERY = 5;
-/** «Повторить» возвращает карточку через столько позиций. */
-const REPEAT_AFTER = 5;
-
-/** mulberry32 — маленький детерминированный ГПСЧ по числовому зерну. */
-function mulberry32(seed: number) {
-  let state = Math.floor(seed * 2 ** 32) || 1;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffle<T>(items: T[], random: () => number): T[] {
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
-
-function buildDeck(
-  verbs: FlashcardVerb[],
-  statuses: Map<string, "none" | "repeat" | "learned">,
-  lastViewAt: Map<string, number | null>,
-  random: () => number,
-): FlashcardVerb[] {
-  const fresh = verbs.filter((v) => statuses.get(v.id) !== "learned");
-  const learned = verbs
-    .filter((v) => statuses.get(v.id) === "learned")
-    // Давно не виденные — первыми в очереди на «вкрапление».
-    .sort((a, b) => (lastViewAt.get(a.id) ?? 0) - (lastViewAt.get(b.id) ?? 0));
-
-  // Всё выучено — сессия целиком из повторения выученных.
-  if (fresh.length === 0) return learned;
-
-  const base = shuffle(fresh, random);
-  const mixCount = Math.min(learned.length, Math.floor(base.length / LEARNED_EVERY));
-  const deck: FlashcardVerb[] = [];
-  let mixed = 0;
-  base.forEach((card, i) => {
-    deck.push(card);
-    if ((i + 1) % LEARNED_EVERY === 0 && mixed < mixCount) deck.push(learned[mixed++]);
-  });
-  return deck;
-}
 
 export function FlashcardsTrainer({
   trainerId,
@@ -155,11 +104,13 @@ export function FlashcardsTrainer({
   // Первая колода детерминирована серверным seed (см. проп), поэтому её можно
   // собрать прямо в инициализаторе — SSR и клиент получат одинаковый порядок.
   const [deck, setDeck] = useState<FlashcardVerb[]>(() =>
-    buildDeck(verbs, statuses, lastViews, mulberry32(seed)),
+    buildDeck(verbs, verbId, statuses, lastViews, mulberry32(seed)),
   );
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
+  /** Номер прохода: после «Ещё раз» показ первой карточки пишется заново. */
+  const [round, setRound] = useState(0);
   const [learnedCount, setLearnedCount] = useState(
     () => progress.filter((p) => p.status === "learned").length,
   );
@@ -170,10 +121,11 @@ export function FlashcardsTrainer({
 
   // «Ещё раз»: уже на клиенте, можно перемешать по-настоящему случайно.
   const restart = useCallback(() => {
-    setDeck(buildDeck(verbs, statuses, lastViews, mulberry32(Math.random())));
+    setDeck(buildDeck(verbs, verbId, statuses, lastViews, mulberry32(Math.random())));
     setIndex(0);
     setRevealed(false);
     setFinished(false);
+    setRound((n) => n + 1);
     setSessionKnow(0);
     setSessionRepeat(0);
   }, [verbs, statuses, lastViews]);
@@ -200,13 +152,13 @@ export function FlashcardsTrainer({
     if (finished || !deck) return;
     const current = deck[index];
     if (!current) return;
-    const key = `${index}:${current.id}`;
+    const key = `${round}:${index}:${current.id}`;
     if (lastViewKey.current === key) return;
     lastViewKey.current = key;
     recordCardView(trainerId, current.id).catch(() => {
       // Сеть моргнула — показ не записан; некритично для тренировки.
     });
-  }, [trainerId, deck, index, finished]);
+  }, [trainerId, deck, index, finished, round]);
 
   const advance = (nextDeck: FlashcardVerb[]) => {
     if (index + 1 >= nextDeck.length) {
