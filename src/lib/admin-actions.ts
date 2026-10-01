@@ -149,8 +149,8 @@ const IMAGE_TYPES: Record<string, string> = {
 
 /**
  * Хранилище подключено? На Vercel ключ BLOB_READ_WRITE_TOKEN проставляет
- * интеграция Blob; локально его нужно скопировать в .env.local
- * (vercel env pull). Без проверки put() упал бы невнятной ошибкой SDK.
+ * интеграция Blob; локально его копируют в .env.local вручную из настроек
+ * хранилища. Без проверки put() упал бы невнятной ошибкой SDK.
  */
 function blobConfigured() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
@@ -182,7 +182,7 @@ export async function uploadVerbImage(
     return {
       error:
         "Хранилище картинок не подключено: нет BLOB_READ_WRITE_TOKEN. " +
-        "Подключите Vercel Blob в Storage и выполните vercel env pull .env.local",
+        "Подключите Vercel Blob в Storage и скопируйте токен из настроек хранилища в .env.local",
     };
   }
 

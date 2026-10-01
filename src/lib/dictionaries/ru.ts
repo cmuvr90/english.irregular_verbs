@@ -133,6 +133,8 @@ const ru: Dictionary = {
     check: "Проверить",
     yourAnswer: "Твой ответ",
     reset: "Сбросить",
+    listen: "Прослушать",
+    noSpeech: "В браузере нет английского голоса. Попробуй Chrome, Edge или Safari либо установи английский голос в настройках системы.",
   },
   verbGroups: {
     title: "Группы глаголов",

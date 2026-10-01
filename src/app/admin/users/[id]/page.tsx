@@ -369,33 +369,39 @@ export default async function UserStatsPage({ params }: Props) {
 
       <section className="flex flex-col gap-3">
         <div>
-          <h2 className="text-base font-bold">Ошибки по картинкам</h2>
+          <h2 className="text-base font-bold">Перепутанные глаголы</h2>
           <p className="text-sm text-subtle">
-            «Подбери глагол к картинке»: какой глагол студент выбирал вместо изображённого
+            «Подбери глагол к картинке» и «Выбери, что слышишь»: какой глагол студент
+            выбирал вместо верного
           </p>
         </div>
         <TableCard>
           <THead>
-            <Th>Картинка</Th>
+            <Th>Тренажёр</Th>
+            <Th>Верный глагол</Th>
             <Th>Выбрал</Th>
             <Th className="text-right">Раз</Th>
             <Th>Последний</Th>
           </THead>
           <TBody>
             {stats.pictureMistakes.length === 0 ? (
-              <EmptyRow colSpan={4}>Ошибок по картинкам пока нет.</EmptyRow>
+              <EmptyRow colSpan={5}>Перепутанных глаголов пока нет.</EmptyRow>
             ) : (
               stats.pictureMistakes.map((row) => {
                 const verb = typedVerbById.get(row.verbId);
+                const trainer = stats.trainers.find((t) => t.id === row.trainerId);
                 return (
-                  <tr key={`${row.verbId}:${row.chosen}`}>
+                  <tr key={`${row.trainerId}:${row.verbId}:${row.chosen}`}>
+                    <Td className="whitespace-nowrap text-subtle">
+                      {trainer ? pickLocalized(trainer.name, "ru") : "—"}
+                    </Td>
                     <Td>
                       {verb ? (
                         <Link
                           href={`/admin/verbs/${verb.id}`}
                           className="flex items-center gap-2 font-semibold text-blue-700 hover:underline"
                         >
-                          {verb.imageUrl && (
+                          {verb.imageUrl && trainer?.key === "picture-match" && (
                             <Image
                               src={verb.imageUrl}
                               alt=""

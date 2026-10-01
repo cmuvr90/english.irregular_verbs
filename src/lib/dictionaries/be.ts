@@ -133,6 +133,8 @@ const be: Dictionary = {
     check: "Праверыць",
     yourAnswer: "Твой адказ",
     reset: "Скінуць",
+    listen: "Праслухаць",
+    noSpeech: "У браўзеры няма англійскага голасу. Паспрабуй Chrome, Edge ці Safari або ўсталюй англійскі голас у наладах сістэмы.",
   },
   verbGroups: {
     title: "Групы дзеясловаў",

@@ -377,10 +377,15 @@ export async function getUserStats(userId: string) {
         orderBy: { _count: { id: "desc" } },
         take: 10,
       }),
-      // «Подбери глагол к картинке»: какую картинку с каким глаголом путал.
+      // «Подбери глагол к картинке» и «Выбери, что слышишь»: какой глагол
+      // с каким студент путал — по картинке или на слух.
       prisma.trainerMistake.groupBy({
-        by: ["verbId", "chosen"],
-        where: { userId, chosen: { not: null }, trainer: { key: "picture-match" } },
+        by: ["trainerId", "verbId", "chosen"],
+        where: {
+          userId,
+          chosen: { not: null },
+          trainer: { key: { in: ["picture-match", "listening"] } },
+        },
         _count: { _all: true },
         _max: { createdAt: true },
         orderBy: { _count: { id: "desc" } },

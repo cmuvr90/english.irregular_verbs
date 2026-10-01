@@ -144,6 +144,8 @@ const en = {
     check: "Check",
     yourAnswer: "Your answer",
     reset: "Clear",
+    listen: "Listen",
+    noSpeech: "Your browser has no English voice. Try Chrome, Edge or Safari, or install an English voice in your system settings.",
   },
   verbGroups: {
     title: "Verb groups",

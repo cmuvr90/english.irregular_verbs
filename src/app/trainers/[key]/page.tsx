@@ -5,6 +5,7 @@ import { cache } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { FillBlanksTrainer } from "@/components/trainers/fill-blanks-trainer";
 import { FlashcardsTrainer } from "@/components/trainers/flashcards-trainer";
+import { ListeningTrainer, type ListeningVerb } from "@/components/trainers/listening-trainer";
 import { PictureMatchTrainer } from "@/components/trainers/picture-match-trainer";
 import { WordOrderTrainer, type OrderSentence } from "@/components/trainers/word-order-trainer";
 import {
@@ -288,6 +289,72 @@ export default async function TrainerPage({ params, searchParams }: Props) {
             fillPlaceholder: t.fillPlaceholder,
             check: t.check,
             yourAnswer: t.yourAnswer,
+            correct: t.correct,
+            wrong: t.wrong,
+            correctAnswer: t.correctAnswer,
+            next: t.next,
+            finishTitle: t.finishTitle,
+            scoreText: t.scoreText,
+            correctCount: t.correctCount,
+            mistakes: t.mistakes,
+            again: t.again,
+            empty: t.empty,
+            back: t.back,
+          }}
+          backHref={backHref}
+          seed={seed}
+        />
+
+        <BottomNav labels={navLabels(dict)} />
+      </main>
+    );
+  }
+
+  if (trainer.key === "listening") {
+    const settings = resolveSettings(trainer.settings, locale);
+    if (!settings) notFound();
+
+    // Группы нужны всем глаголам: из них подбираются похожие на слух варианты.
+    // Колода — глаголы группы (?group=) или все; варианты — всегда из всех.
+    if (groupKey && !(await prisma.verbGroup.findUnique({ where: { key: groupKey } }))) {
+      notFound();
+    }
+    const all = await prisma.verb.findMany({
+      include: { groups: { select: { verbGroupId: true, group: { select: { key: true } } } } },
+    });
+    const toListening = (verb: (typeof all)[number]): ListeningVerb => ({
+      id: verb.id,
+      form1: verb.form1,
+      form2: verb.form2,
+      form3: verb.form3,
+      translation: pickLocalized(verb.translation, locale),
+      groupIds: verb.groups.map((g) => g.verbGroupId),
+      // Записанного аудио пока нет — звучит синтез браузера (см. src/lib/speech.ts).
+      audioUrl: null,
+    });
+    const choices = all.map(toListening);
+    const verbs = groupKey
+      ? choices.filter((_, i) => all[i].groups.some((g) => g.group.key === groupKey))
+      : choices;
+    const progress = await loadProgress(
+      session.user.id,
+      trainer.id,
+      verbs.map((verb) => verb.id),
+    );
+
+    return (
+      <main className="flex-1 bg-white">
+        <ListeningTrainer
+          trainerId={trainer.id}
+          title={title}
+          settings={settings}
+          verbs={verbs}
+          choices={choices}
+          progress={progress}
+          labels={{
+            howItWorks: t.howItWorks,
+            listen: t.listen,
+            noSpeech: t.noSpeech,
             correct: t.correct,
             wrong: t.wrong,
             correctAnswer: t.correctAnswer,

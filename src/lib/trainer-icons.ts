@@ -5,11 +5,13 @@ import {
   Brain,
   CircleCheck,
   Eye,
+  Headphones,
   Image as ImageIcon,
   Lightbulb,
   ListChecks,
   ListOrdered,
   Shuffle,
+  Volume2,
   PenLine,
   Sparkles,
   type LucideIcon,
@@ -30,6 +32,7 @@ export const stepIcons: Record<string, LucideIcon> = {
   lightbulb: Lightbulb,
   pencil: PenLine,
   shuffle: Shuffle,
+  volume: Volume2,
 };
 
 /**
@@ -43,6 +46,7 @@ const trainerIcons: Record<string, LucideIcon> = {
   "fill-blanks": PenLine,
   "word-order": ListOrdered,
   "picture-match": ImageIcon,
+  listening: Headphones,
 };
 
 export function trainerIcon(key: string): LucideIcon {

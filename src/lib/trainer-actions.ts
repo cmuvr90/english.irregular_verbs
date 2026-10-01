@@ -53,7 +53,8 @@ export async function recordCardView(trainerId: string, verbId: string) {
  * Что ответил студент — для журнала ошибок:
  * - «Выбери форму» и «Расставь слова»: предложение и ответ;
  * - «Заполни пропуски»: какую форму спрашивали и что студент вписал;
- * - «Подбери глагол к картинке»: какой глагол студент выбрал вместо верного.
+ * - «Подбери глагол к картинке» и «Выбери, что слышишь»: какой глагол
+ *   студент выбрал вместо верного.
  */
 export type AnswerChoice =
   | { sentenceId: string; chosen: string }
@@ -196,7 +197,7 @@ async function logMistake(
         }
       }
     } else if (
-      trainerKey === "picture-match" &&
+      (trainerKey === "picture-match" || trainerKey === "listening") &&
       details &&
       "pickedVerbId" in details &&
       typeof details.pickedVerbId === "string" &&

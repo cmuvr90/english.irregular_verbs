@@ -133,6 +133,8 @@ const pl: Dictionary = {
     check: "Sprawdź",
     yourAnswer: "Twoja odpowiedź",
     reset: "Wyczyść",
+    listen: "Odsłuchaj",
+    noSpeech: "Przeglądarka nie ma angielskiego głosu. Spróbuj Chrome, Edge lub Safari albo zainstaluj angielski głos w ustawieniach systemu.",
   },
   verbGroups: {
     title: "Grupy czasowników",

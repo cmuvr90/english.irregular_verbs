@@ -318,4 +318,63 @@ export const trainers: SeedTrainer[] = [
       },
     },
   },
+  {
+    key: "listening",
+    name: {
+      en: "Choose what you hear",
+      be: "Выберы, што чуеш",
+      uk: "Обери, що чуєш",
+      pl: "Wybierz, co słyszysz",
+      ru: "Выбери, что слышишь",
+    },
+    description: {
+      en: "Listen to three verb forms and pick the ones you heard.",
+      be: "Паслухай тры формы дзеяслова і выберы тыя, што пачуў.",
+      uk: "Послухай три форми дієслова й обери ті, що почув.",
+      pl: "Posłuchaj trzech form czasownika i wybierz te, które usłyszałeś.",
+      ru: "Послушай три формы глагола и выбери те, что услышал.",
+    },
+    settings: {
+      en: {
+        hint: "Tap the speaker as many times as you need",
+        steps: [
+          { position: 1, icon: "volume", name: "Listen", description: "Three forms of one verb are read aloud." },
+          { position: 2, icon: "list-checks", name: "Pick what you heard", description: "Similar-sounding verbs are among the options." },
+          { position: 3, icon: "circle-check", name: "Check yourself", description: "A mistake brings the verb back a few cards later." },
+        ],
+      },
+      be: {
+        hint: "Націскай на дынамік колькі трэба",
+        steps: [
+          { position: 1, icon: "volume", name: "Паслухай", description: "Чытаюцца тры формы аднаго дзеяслова." },
+          { position: 2, icon: "list-checks", name: "Выберы пачутае", description: "Сярод варыянтаў ёсць падобныя на слых дзеясловы." },
+          { position: 3, icon: "circle-check", name: "Правер сябе", description: "Памылка верне дзеяслоў праз некалькі картак." },
+        ],
+      },
+      uk: {
+        hint: "Натискай на динамік скільки потрібно",
+        steps: [
+          { position: 1, icon: "volume", name: "Послухай", description: "Читаються три форми одного дієслова." },
+          { position: 2, icon: "list-checks", name: "Обери почуте", description: "Серед варіантів є схожі на слух дієслова." },
+          { position: 3, icon: "circle-check", name: "Перевір себе", description: "Помилка поверне дієслово через кілька карток." },
+        ],
+      },
+      pl: {
+        hint: "Naciskaj głośnik tyle razy, ile trzeba",
+        steps: [
+          { position: 1, icon: "volume", name: "Posłuchaj", description: "Czytane są trzy formy jednego czasownika." },
+          { position: 2, icon: "list-checks", name: "Wybierz usłyszane", description: "Wśród opcji są podobnie brzmiące czasowniki." },
+          { position: 3, icon: "circle-check", name: "Sprawdź się", description: "Błąd przywróci czasownik za kilka kart." },
+        ],
+      },
+      ru: {
+        hint: "Нажимай на динамик сколько нужно",
+        steps: [
+          { position: 1, icon: "volume", name: "Послушай", description: "Читаются три формы одного глагола." },
+          { position: 2, icon: "list-checks", name: "Выбери услышанное", description: "Среди вариантов есть похожие на слух глаголы." },
+          { position: 3, icon: "circle-check", name: "Проверь себя", description: "Ошибка вернёт глагол через несколько карточек." },
+        ],
+      },
+    },
+  },
 ];
