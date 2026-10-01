@@ -42,6 +42,7 @@ const uk: Dictionary = {
     appName: "Irregular Verbs",
     tagline: "Вивчення англійських неправильних дієслів",
     language: "Мова",
+    admin: "Адмінка",
   },
   auth: {
     namePlaceholder: "Ім'я",

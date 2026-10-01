@@ -1,4 +1,4 @@
-import { ChevronRight, Dumbbell, ListChecks, WalletCards, type LucideIcon } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -9,17 +9,12 @@ import { getLocale } from "@/lib/i18n";
 import { pickLocalized } from "@/lib/locales";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { trainerIcon } from "@/lib/trainer-icons";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary(await getLocale());
   return { title: dict.meta.trainers };
 }
-
-/** Иконка тренажёра по его key; для новых тренажёров — нейтральный фолбэк. */
-const trainerIcons: Record<string, LucideIcon> = {
-  flashcards: WalletCards,
-  "multiple-choice": ListChecks,
-};
 
 export default async function TrainersPage() {
   await requireSession();
@@ -41,7 +36,7 @@ export default async function TrainersPage() {
       <div className="mx-auto w-full max-w-md px-5 pt-32 pb-28">
         <ul className="flex flex-col gap-3">
           {trainers.map((trainer) => {
-            const TrainerIcon = trainerIcons[trainer.key] ?? Dumbbell;
+            const TrainerIcon = trainerIcon(trainer.key);
             return (
             <li key={trainer.id}>
               <Link

@@ -12,6 +12,7 @@ import {
   List,
   RotateCw,
   Settings,
+  ShieldCheck,
   Target,
   WalletCards,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { getDictionary } from "@/lib/dictionaries";
 import { getLocale } from "@/lib/i18n";
 import { interpolate, plural } from "@/lib/locales";
+import { isAdmin } from "@/lib/roles";
 import { requireSession } from "@/lib/session";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -93,6 +95,16 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm text-subtle">{dict.common.tagline}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {isAdmin(session.user) && (
+              <Link
+                href="/admin"
+                aria-label={dict.common.admin}
+                title={dict.common.admin}
+                className="flex size-11 items-center justify-center rounded-full border border-line/60 bg-white text-subtle shadow-sm transition-colors hover:text-blue-600"
+              >
+                <ShieldCheck size={20} />
+              </Link>
+            )}
             <span className="flex items-center gap-1.5 rounded-full border border-line/60 bg-white py-2.5 pr-4 pl-3 shadow-sm">
               <Flame size={20} className="text-orange-500" />
               <span className="font-semibold text-blue-600">{demo.streak}</span>

@@ -2,19 +2,17 @@
 
 import {
   ArrowLeft,
-  Brain,
   Check,
   CircleCheck,
   Eye,
   Flame,
   RotateCw,
-  Sparkles,
-  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
+import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
 
 /**
@@ -72,13 +70,6 @@ type Props = {
    * поэтому SSR и гидрация видят одинаковый порядок карточек.
    */
   seed: number;
-};
-
-/** Имя иконки из settings (kebab-case lucide) → компонент. */
-const stepIcons: Record<string, LucideIcon> = {
-  eye: Eye,
-  brain: Brain,
-  "circle-check": CircleCheck,
 };
 
 const stepChips = [
@@ -363,7 +354,7 @@ export function FlashcardsTrainer({
             {/* шаги «как работает тренажёр» из settings */}
             <ul className="mt-6 flex flex-col gap-3">
               {settings.steps.map((step, i) => {
-                const StepIcon = stepIcons[step.icon] ?? Sparkles;
+                const StepIcon = stepIcon(step.icon);
                 return (
                   <li
                     key={step.position}

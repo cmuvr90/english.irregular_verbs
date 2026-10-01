@@ -13,6 +13,18 @@ export const getSession = cache(async () => {
   return auth.api.getSession({ headers: await headers() });
 });
 
+/**
+ * Сессия в обход кеша в куке (cookieCache в auth.ts живёт до 5 минут).
+ * Нужна там, где решает роль: снятые права должны отниматься сразу,
+ * а не через пять минут.
+ */
+export const getFreshSession = cache(async () => {
+  return auth.api.getSession({
+    headers: await headers(),
+    query: { disableCookieCache: true },
+  });
+});
+
 /** Для защищённых страниц: отдаёт сессию либо уводит на вход (он на главной). */
 export async function requireSession() {
   const session = await getSession();
@@ -22,7 +34,8 @@ export async function requireSession() {
 
 /** Для админских страниц: пускает только пользователей с ролью admin. */
 export async function requireAdmin() {
-  const session = await requireSession();
+  const session = await getFreshSession();
+  if (!session) redirect("/");
   if (!isAdmin(session.user)) redirect("/dashboard");
   return session;
 }

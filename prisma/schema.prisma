@@ -27,6 +27,7 @@ model User {
   sessions        Session[]
   accounts        Account[]
   trainerProgress TrainerVerbProgress[]
+  trainerMistakes TrainerMistake[]
 
   sentencesCreated VerbSentence[] @relation("SentenceAuthor")
   sentencesUpdated VerbSentence[] @relation("SentenceEditor")
@@ -101,6 +102,7 @@ model Verb {
 
   groups          VerbGroupLink[]
   trainerProgress TrainerVerbProgress[]
+  trainerMistakes TrainerMistake[]
   sentences       VerbSentence[]
 
   // Один и тот же набор форм не должен попасть в базу дважды (а сид может
@@ -139,6 +141,7 @@ model Trainer {
   updatedAt   DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
 
   progress TrainerVerbProgress[]
+  mistakes TrainerMistake[]
 
   @@map("trainers")
 }
@@ -185,6 +188,38 @@ model TrainerVerbProgress {
   // Выборка «весь прогресс студента в тренажёре» — основной запрос страницы.
   @@index([userId, trainerId])
   @@map("trainer_verb_progress")
+}
+
+/// Журнал ошибок: строка на каждый неверный ответ студента в тренажёре.
+/// Верные ответы не пишем — их итог уже копится в trainer_verb_progress
+/// (count_know), а журнал нужен админке, чтобы видеть, когда и в чём
+/// студент ошибается.
+model TrainerMistake {
+  id        String  @id @default(cuid())
+  userId    String  @map("user_id")
+  trainerId String  @map("trainer_id")
+  verbId    String  @map("verb_id")
+  /// Предложение «Выбери форму»; у карточек («Повторить») — NULL.
+  sentenceId String? @map("sentence_id")
+  /// Неверный вариант, который выбрал студент в «Выбери форму».
+  chosen    String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainer  Trainer       @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  verb     Verb          @relation(fields: [verbId], references: [id], onDelete: Cascade)
+  // Удалили предложение — ошибка остаётся в статистике, без ссылки.
+  sentence VerbSentence? @relation(fields: [sentenceId], references: [id], onDelete: SetNull)
+
+  // Страница пользователя: его ошибки за период.
+  @@index([userId, createdAt])
+  // Postgres не индексирует внешние ключи сам: без этих индексов каскадное
+  // удаление глагола, тренажёра или предложения сканировало бы весь журнал,
+  // а он только растёт.
+  @@index([verbId])
+  @@index([trainerId])
+  @@index([sentenceId])
+  @@map("trainer_mistakes")
 }
 
 /// Связь «многие-ко-многим»: один глагол может входить в несколько групп.
@@ -246,6 +281,7 @@ model VerbSentence {
   updatedAt DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
 
   verb      Verb  @relation(fields: [verbId], references: [id], onDelete: Cascade)
+  mistakes  TrainerMistake[]
   createdBy User? @relation("SentenceAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   updatedBy User? @relation("SentenceEditor", fields: [updatedById], references: [id], onDelete: SetNull)
 

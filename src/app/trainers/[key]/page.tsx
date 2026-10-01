@@ -23,15 +23,28 @@ type Props = {
 
 const getTrainer = cache((key: string) => prisma.trainer.findUnique({ where: { key } }));
 
-/** settings хранится по локалям; берём текущую, иначе — язык по умолчанию. */
+/**
+ * settings хранится по локалям. Каркас (порядок шагов, иконки) и запасной
+ * текст — из языка по умолчанию; поверх него кладём перевод текущего языка
+ * поле за полем. Админка сохраняет пустыми непереведённые поля, поэтому
+ * подстановка английского происходит здесь, при показе.
+ */
 function resolveSettings(settings: unknown, locale: Locale): TrainerSettings | null {
   if (!settings || typeof settings !== "object") return null;
-  const map = settings as Record<string, TrainerSettings | undefined>;
-  const resolved = map[locale] ?? map[defaultLocale];
-  if (!resolved || typeof resolved.hint !== "string" || !Array.isArray(resolved.steps)) {
-    return null;
-  }
-  return resolved;
+  const map = settings as Record<string, Partial<TrainerSettings> | undefined>;
+  const base = map[defaultLocale];
+  if (!base || typeof base.hint !== "string" || !Array.isArray(base.steps)) return null;
+
+  const localized = map[locale];
+  const localizedSteps = Array.isArray(localized?.steps) ? localized.steps : [];
+  return {
+    hint: localized?.hint || base.hint,
+    steps: base.steps.map((step, index) => ({
+      ...step,
+      name: localizedSteps[index]?.name || step.name,
+      description: localizedSteps[index]?.description || step.description,
+    })),
+  };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

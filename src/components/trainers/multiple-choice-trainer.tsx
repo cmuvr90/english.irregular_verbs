@@ -3,15 +3,10 @@
 import {
   ArrowLeft,
   ArrowRight,
-  BookOpen,
   CircleCheck,
   CircleX,
   Flame,
-  Lightbulb,
-  ListChecks,
   RotateCw,
-  Sparkles,
-  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -25,6 +20,7 @@ import {
   type SentenceOptions,
 } from "@/lib/sentence-options";
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
+import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
 
 /**
@@ -92,13 +88,6 @@ type Props = {
    * задания собираются детерминированно, поэтому SSR и гидрация совпадают.
    */
   seed: number;
-};
-
-/** Имя иконки из settings (kebab-case lucide) → компонент. */
-const stepIcons: Record<string, LucideIcon> = {
-  "book-open": BookOpen,
-  "list-checks": ListChecks,
-  lightbulb: Lightbulb,
 };
 
 const stepChips = [
@@ -285,7 +274,10 @@ export function MultipleChoiceTrainer({
     if (statuses.get(verbId) === "learned") setLearnedCount((n) => n - 1);
     statuses.set(verbId, "repeat");
     setSessionWrong((n) => n + 1);
-    answerCard(trainerId, verbId, "repeat").catch(() => {});
+    answerCard(trainerId, verbId, "repeat", {
+      sentenceId: question.sentence.id,
+      chosen: option.text,
+    }).catch(() => {});
 
     // Ошибку возвращаем в колоду через несколько позиций — кроме случая,
     // когда это последнее задание: подстановка в конец зациклила бы сессию
@@ -524,7 +516,7 @@ export function MultipleChoiceTrainer({
                  чтобы не отвлекать от разбора */
               <ul className="mt-6 flex flex-col gap-3">
                 {settings.steps.map((step, i) => {
-                  const StepIcon = stepIcons[step.icon] ?? Sparkles;
+                  const StepIcon = stepIcon(step.icon);
                   return (
                     <li
                       key={step.position}

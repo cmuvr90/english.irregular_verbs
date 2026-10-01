@@ -42,6 +42,7 @@ const be: Dictionary = {
     appName: "Irregular Verbs",
     tagline: "Вывучэнне англійскіх няправільных дзеясловаў",
     language: "Мова",
+    admin: "Адмінка",
   },
   auth: {
     namePlaceholder: "Імя",

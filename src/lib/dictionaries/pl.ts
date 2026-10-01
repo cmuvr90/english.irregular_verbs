@@ -42,6 +42,7 @@ const pl: Dictionary = {
     appName: "Irregular Verbs",
     tagline: "Nauka angielskich czasowników nieregularnych",
     language: "Język",
+    admin: "Panel admina",
   },
   auth: {
     namePlaceholder: "Imię",

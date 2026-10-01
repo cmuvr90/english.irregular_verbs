@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 
 import { prisma } from "@/lib/prisma";
+import type { SentenceOption } from "@/lib/sentence-options";
 import { getSession } from "@/lib/session";
 
 /**
@@ -40,15 +41,25 @@ export async function recordCardView(trainerId: string, verbId: string) {
   }
 }
 
-/** Студент оценил карточку: «Знаю» → learned, «Повторить» → repeat. */
+/**
+ * Студент оценил карточку: «Знаю» → learned, «Повторить» → repeat.
+ * choice — что выбрал студент в «Выбери форму». Неверный ответ уходит
+ * в журнал ошибок: по нему админка показывает, когда и в чём студент ошибается.
+ */
 export async function answerCard(
   trainerId: string,
   verbId: string,
   answer: "know" | "repeat",
+  choice?: { sentenceId: string; chosen: string },
 ) {
   const session = await getSession();
   if (!session) return;
   if (answer !== "know" && answer !== "repeat") return;
+
+  // Журнал пишется параллельно с прогрессом: лишний последовательный поход
+  // в базу на каждой ошибке студенту ни к чему. logMistake не бросает.
+  const logging =
+    answer === "repeat" ? logMistake(session.user.id, trainerId, verbId, choice) : null;
 
   try {
     if (answer === "know") {
@@ -88,4 +99,75 @@ export async function answerCard(
   } catch (error) {
     console.error("answerCard failed:", error);
   }
+
+  await logging;
+}
+
+/** Повтор той же ошибки чаще этого — двойной тап или скрипт, в журнал не пишем. */
+const MISTAKE_DEDUP_MS = 5_000;
+
+/**
+ * Строка в журнал ошибок. Отдельный try: сбой журнала не должен помешать
+ * записи прогресса, ради которой экшен и вызван.
+ *
+ * sentenceId и chosen приходят с клиента, поэтому сверяем их с базой:
+ * предложение должно принадлежать этому глаголу, а chosen — быть одним из
+ * его неверных вариантов. Не сошлось — пишем ошибку без них, а не мусор,
+ * который потом покажется админу как «типичная ошибка».
+ */
+async function logMistake(
+  userId: string,
+  trainerId: string,
+  verbId: string,
+  choice?: { sentenceId: string; chosen: string },
+) {
+  try {
+    let sentenceId: string | null = null;
+    let chosen: string | null = null;
+
+    if (choice && typeof choice.sentenceId === "string") {
+      const sentence = await prisma.verbSentence.findFirst({
+        where: { id: choice.sentenceId, verbId },
+        select: { id: true, options: true },
+      });
+      if (sentence) {
+        sentenceId = sentence.id;
+        const wrong = Object.values((sentence.options ?? {}) as Record<string, unknown>)
+          .flatMap((variants) => (Array.isArray(variants) ? variants : []))
+          .filter((option): option is SentenceOption => isWrongOption(option))
+          .map((option) => option.text);
+        if (typeof choice.chosen === "string" && wrong.includes(choice.chosen)) {
+          chosen = choice.chosen;
+        }
+      }
+    }
+
+    const duplicate = await prisma.trainerMistake.findFirst({
+      where: {
+        userId,
+        trainerId,
+        verbId,
+        sentenceId,
+        chosen,
+        createdAt: { gte: new Date(Date.now() - MISTAKE_DEDUP_MS) },
+      },
+      select: { id: true },
+    });
+    if (duplicate) return;
+
+    await prisma.trainerMistake.create({
+      data: { userId, trainerId, verbId, sentenceId, chosen },
+    });
+  } catch (error) {
+    console.error("logMistake failed:", error);
+  }
+}
+
+function isWrongOption(value: unknown): value is SentenceOption {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as SentenceOption).text === "string" &&
+    (value as SentenceOption).correct === false
+  );
 }

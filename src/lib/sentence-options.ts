@@ -57,6 +57,21 @@ export function correctOptions(options: SentenceOption[]): SentenceOption[] {
   return options.filter((option) => option.correct);
 }
 
+/**
+ * Верный ответ первого пропуска — для предложений тренажёра, где пропуск
+ * один. null — пропуска нет или верный вариант не размечен.
+ */
+export function firstCorrectAnswer(text: string, options: unknown): string | null {
+  const [key] = parseBlanks(text);
+  if (!key || !options || typeof options !== "object") return null;
+  const variants = (options as Record<string, unknown>)[key];
+  if (!Array.isArray(variants)) return null;
+  const correct = variants.find(
+    (v): v is SentenceOption => typeof v === "object" && v !== null && v.correct === true,
+  );
+  return typeof correct?.text === "string" ? correct.text : null;
+}
+
 /** Вариант ответа в том виде, в каком его приняла бы база: {text, correct}. */
 function isSentenceOption(value: unknown): value is SentenceOption {
   return (

@@ -1,0 +1,78 @@
+/**
+ * Карта «тренажёр → откуда он берёт данные» для админки. Описывает поведение
+ * src/app/trainers/[key]/page.tsx: поменялась загрузка колоды там — правим
+ * описание здесь, иначе админка начнёт врать редактору.
+ *
+ * Ключ — Trainer.key. Тренажёр без записи здесь в базе есть, но компонента
+ * под него нет: студент попадает на заглушку «Скоро».
+ */
+
+export type ContentSection = "verbs" | "groups" | "sentences";
+
+export type TrainerSource = {
+  section: ContentSection;
+  /** Что именно из раздела попадает в тренажёр. */
+  what: string;
+};
+
+export type TrainerGuide = {
+  /** Одной фразой: что делает студент. */
+  summary: string;
+  /** Как собирается колода. */
+  deck: string;
+  sources: TrainerSource[];
+  /** Где студент видит подсказку из settings.hint. */
+  hintPlace: string;
+};
+
+export const trainerGuides: Record<string, TrainerGuide> = {
+  flashcards: {
+    summary: "Студент видит инфинитив, вспоминает перевод и три формы, затем оценивает себя.",
+    deck:
+      "Все глаголы вперемешку. Со страницы группы (кнопка «Тренироваться») — только глаголы этой группы.",
+    sources: [
+      { section: "verbs", what: "Три формы и перевод — лицевая и обратная сторона карточки" },
+      { section: "groups", what: "Колода по группе: кнопка «Тренироваться» на странице группы" },
+    ],
+    hintPlace: "под карточкой, пока ответ скрыт",
+  },
+  "multiple-choice": {
+    summary: "Студент читает предложение с пропуском и выбирает подходящую форму глагола.",
+    deck:
+      "Только опубликованные предложения ровно с одним пропуском [a], прошедшие проверку. " +
+      "Черновики, архив и предложения с несколькими пропусками студент не видит.",
+    sources: [
+      {
+        section: "sentences",
+        what: "Текст, варианты ответа, разбор и перевод — само задание",
+      },
+      {
+        section: "verbs",
+        what: "Глагол предложения: по нему считается прогресс студента",
+      },
+      {
+        section: "groups",
+        what: "Фильтр по группе через ?group=<ключ> (кнопки в приложении пока нет)",
+      },
+    ],
+    hintPlace: "под предложением, пока студент не ответил",
+  },
+};
+
+/** Описание тренажёра по ключу. hasOwn — ключ из базы не должен попасть в прототип объекта. */
+export function guideFor(key: string): TrainerGuide | undefined {
+  return Object.hasOwn(trainerGuides, key) ? trainerGuides[key] : undefined;
+}
+
+export const sectionLinks: Record<ContentSection, { href: string; label: string }> = {
+  verbs: { href: "/admin/verbs", label: "Глаголы" },
+  groups: { href: "/admin/groups", label: "Группы" },
+  sentences: { href: "/admin/sentences", label: "Предложения" },
+};
+
+/** Обратная карта для страниц контента: какие тренажёры читают этот раздел. */
+export function trainersUsing(section: ContentSection) {
+  return Object.entries(trainerGuides)
+    .map(([key, guide]) => ({ key, source: guide.sources.find((s) => s.section === section) }))
+    .filter((item): item is { key: string; source: TrainerSource } => Boolean(item.source));
+}

@@ -53,6 +53,7 @@ const en = {
     appName: "Irregular Verbs",
     tagline: "Learn English irregular verbs",
     language: "Language",
+    admin: "Admin panel",
   },
   auth: {
     namePlaceholder: "Name",
