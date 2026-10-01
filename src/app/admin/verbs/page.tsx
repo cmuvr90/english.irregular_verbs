@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 
 import {
   Badge,
   EmptyRow,
   FilterBar,
+  filterSelectClass,
   NewLink,
   PageHeader,
   PillTitle,
@@ -15,19 +17,23 @@ import {
   THead,
 } from "@/components/admin/ui";
 import { UsedBy } from "@/components/admin/used-by";
-import { listVerbs } from "@/dal/admin";
+import { listVerbs, type ImageFilter } from "@/dal/admin";
 import { searchParam } from "@/lib/admin-form";
 import { pickLocalized } from "@/lib/locales";
 import { requireAdmin } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Глаголы" };
 
-type Props = { searchParams: Promise<{ q?: string | string[] }> };
+type Props = { searchParams: Promise<{ q?: string | string[]; image?: string | string[] }> };
 
 export default async function AdminVerbsPage({ searchParams }: Props) {
   await requireAdmin();
-  const q = searchParam((await searchParams).q);
-  const verbs = await listVerbs(q);
+  const params = await searchParams;
+  const q = searchParam(params.q);
+  const imageParam = searchParam(params.image);
+  const image: ImageFilter =
+    imageParam === "with" || imageParam === "without" ? imageParam : null;
+  const verbs = await listVerbs(q, image);
 
   return (
     <>
@@ -38,7 +44,18 @@ export default async function AdminVerbsPage({ searchParams }: Props) {
         actions={<NewLink href="/admin/verbs/new">Новый глагол</NewLink>}
       >
         <UsedBy section="verbs" />
-        <FilterBar query={q} placeholder="Поиск по любой форме" summary={`Найдено: ${verbs.length}`} />
+        <FilterBar query={q} placeholder="Поиск по любой форме" summary={`Найдено: ${verbs.length}`}>
+          <select
+            name="image"
+            defaultValue={image ?? ""}
+            aria-label="Картинка"
+            className={filterSelectClass}
+          >
+            <option value="">С картинкой и без</option>
+            <option value="with">С картинкой</option>
+            <option value="without">Без картинки</option>
+          </select>
+        </FilterBar>
       </PageHeader>
 
       <TableCard>
@@ -47,10 +64,11 @@ export default async function AdminVerbsPage({ searchParams }: Props) {
           <Th>Перевод (RU)</Th>
           <Th>Группы</Th>
           <Th className="text-right">Предложений</Th>
+          <Th className="text-center">Картинка</Th>
         </THead>
         <TBody>
           {verbs.length === 0 ? (
-            <EmptyRow colSpan={4}>{q ? "Ничего не нашлось." : "Глаголов пока нет."}</EmptyRow>
+            <EmptyRow colSpan={5}>{q ? "Ничего не нашлось." : "Глаголов пока нет."}</EmptyRow>
           ) : (
             verbs.map((verb) => (
               <tr key={verb.id}>
@@ -70,6 +88,13 @@ export default async function AdminVerbsPage({ searchParams }: Props) {
                   </span>
                 </Td>
                 <Td className="text-right font-mono text-xs tabular-nums">{verb._count.sentences}</Td>
+                <Td className="text-center">
+                  {verb.imageUrl ? (
+                    <ImageIcon aria-label="есть" className="mx-auto size-4 text-blue-600" />
+                  ) : (
+                    <span className="text-subtle">—</span>
+                  )}
+                </Td>
               </tr>
             ))
           )}

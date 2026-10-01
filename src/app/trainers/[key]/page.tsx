@@ -5,6 +5,7 @@ import { cache } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { FillBlanksTrainer } from "@/components/trainers/fill-blanks-trainer";
 import { FlashcardsTrainer } from "@/components/trainers/flashcards-trainer";
+import { PictureMatchTrainer } from "@/components/trainers/picture-match-trainer";
 import { WordOrderTrainer, type OrderSentence } from "@/components/trainers/word-order-trainer";
 import {
   MultipleChoiceTrainer,
@@ -287,6 +288,74 @@ export default async function TrainerPage({ params, searchParams }: Props) {
             fillPlaceholder: t.fillPlaceholder,
             check: t.check,
             yourAnswer: t.yourAnswer,
+            correct: t.correct,
+            wrong: t.wrong,
+            correctAnswer: t.correctAnswer,
+            next: t.next,
+            finishTitle: t.finishTitle,
+            scoreText: t.scoreText,
+            correctCount: t.correctCount,
+            mistakes: t.mistakes,
+            again: t.again,
+            empty: t.empty,
+            back: t.back,
+          }}
+          backHref={backHref}
+          seed={seed}
+        />
+
+        <BottomNav labels={navLabels(dict)} />
+      </main>
+    );
+  }
+
+  if (trainer.key === "picture-match") {
+    const settings = resolveSettings(trainer.settings, locale);
+    if (!settings) notFound();
+
+    // В колоду — только глаголы с картинкой; варианты ответа — из всех глаголов,
+    // иначе при паре картинок выбирать было бы не из чего.
+    const [deckVerbs, allVerbs] = await Promise.all([
+      loadVerbs(groupKey),
+      groupKey ? prisma.verb.findMany() : null,
+    ]);
+    const choices = (allVerbs ?? deckVerbs).map((verb) => ({
+      id: verb.id,
+      form1: verb.form1,
+      form2: verb.form2,
+      form3: verb.form3,
+    }));
+    const verbs = deckVerbs.flatMap((verb) =>
+      verb.imageUrl
+        ? [
+            {
+              id: verb.id,
+              form1: verb.form1,
+              form2: verb.form2,
+              form3: verb.form3,
+              translation: pickLocalized(verb.translation, locale),
+              imageUrl: verb.imageUrl,
+            },
+          ]
+        : [],
+    );
+    const progress = await loadProgress(
+      session.user.id,
+      trainer.id,
+      verbs.map((verb) => verb.id),
+    );
+
+    return (
+      <main className="flex-1 bg-white">
+        <PictureMatchTrainer
+          trainerId={trainer.id}
+          title={title}
+          settings={settings}
+          verbs={verbs}
+          choices={choices}
+          progress={progress}
+          labels={{
+            howItWorks: t.howItWorks,
             correct: t.correct,
             wrong: t.wrong,
             correctAnswer: t.correctAnswer,

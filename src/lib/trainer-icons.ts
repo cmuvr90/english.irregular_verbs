@@ -5,6 +5,7 @@ import {
   Brain,
   CircleCheck,
   Eye,
+  Image as ImageIcon,
   Lightbulb,
   ListChecks,
   ListOrdered,
@@ -41,6 +42,7 @@ const trainerIcons: Record<string, LucideIcon> = {
   "multiple-choice": ListChecks,
   "fill-blanks": PenLine,
   "word-order": ListOrdered,
+  "picture-match": ImageIcon,
 };
 
 export function trainerIcon(key: string): LucideIcon {

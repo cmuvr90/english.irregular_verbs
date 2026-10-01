@@ -259,4 +259,63 @@ export const trainers: SeedTrainer[] = [
       },
     },
   },
+  {
+    key: "picture-match",
+    name: {
+      en: "Match the picture",
+      be: "Падбяры дзеяслоў да карцінкі",
+      uk: "Підбери дієслово до картинки",
+      pl: "Dopasuj czasownik do obrazka",
+      ru: "Подбери глагол к картинке",
+    },
+    description: {
+      en: "Look at the picture and pick the verb it shows.",
+      be: "Паглядзі на карцінку і выберы дзеяслоў, які на ёй.",
+      uk: "Подивись на картинку й обери дієслово, яке на ній.",
+      pl: "Spójrz na obrazek i wybierz czasownik, który przedstawia.",
+      ru: "Посмотри на картинку и выбери глагол, который на ней.",
+    },
+    settings: {
+      en: {
+        hint: "Which verb is in the picture?",
+        steps: [
+          { position: 1, icon: "eye", name: "Look at the picture", description: "It shows one action." },
+          { position: 2, icon: "list-checks", name: "Pick the verb", description: "Choose its three forms from four options." },
+          { position: 3, icon: "circle-check", name: "Check yourself", description: "A mistake brings the picture back a few cards later." },
+        ],
+      },
+      be: {
+        hint: "Які дзеяслоў на карцінцы?",
+        steps: [
+          { position: 1, icon: "eye", name: "Паглядзі на карцінку", description: "На ёй адно дзеянне." },
+          { position: 2, icon: "list-checks", name: "Выберы дзеяслоў", description: "Выберы яго тры формы з чатырох варыянтаў." },
+          { position: 3, icon: "circle-check", name: "Правер сябе", description: "Памылка верне карцінку праз некалькі картак." },
+        ],
+      },
+      uk: {
+        hint: "Яке дієслово на картинці?",
+        steps: [
+          { position: 1, icon: "eye", name: "Подивись на картинку", description: "На ній одна дія." },
+          { position: 2, icon: "list-checks", name: "Обери дієслово", description: "Обери його три форми з чотирьох варіантів." },
+          { position: 3, icon: "circle-check", name: "Перевір себе", description: "Помилка поверне картинку через кілька карток." },
+        ],
+      },
+      pl: {
+        hint: "Jaki czasownik jest na obrazku?",
+        steps: [
+          { position: 1, icon: "eye", name: "Spójrz na obrazek", description: "Przedstawia jedną czynność." },
+          { position: 2, icon: "list-checks", name: "Wybierz czasownik", description: "Wybierz jego trzy formy spośród czterech opcji." },
+          { position: 3, icon: "circle-check", name: "Sprawdź się", description: "Błąd przywróci obrazek za kilka kart." },
+        ],
+      },
+      ru: {
+        hint: "Какой глагол на картинке?",
+        steps: [
+          { position: 1, icon: "eye", name: "Посмотри на картинку", description: "На ней одно действие." },
+          { position: 2, icon: "list-checks", name: "Выбери глагол", description: "Выбери его три формы из четырёх вариантов." },
+          { position: 3, icon: "circle-check", name: "Проверь себя", description: "Ошибка вернёт картинку через несколько карточек." },
+        ],
+      },
+    },
+  },
 ];

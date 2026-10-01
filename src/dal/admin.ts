@@ -24,17 +24,23 @@ export async function getAdminStats() {
 
 // ── Глаголы ─────────────────────────────────────────────────────────────────
 
-export async function listVerbs(query: string) {
+export type ImageFilter = "with" | "without" | null;
+
+export async function listVerbs(query: string, image: ImageFilter = null) {
   const q = query.trim();
-  const where: Prisma.VerbWhereInput = q
-    ? {
-        OR: [
-          { form1: { contains: q, mode: "insensitive" } },
-          { form2: { contains: q, mode: "insensitive" } },
-          { form3: { contains: q, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const where: Prisma.VerbWhereInput = {
+    ...(q
+      ? {
+          OR: [
+            { form1: { contains: q, mode: "insensitive" } },
+            { form2: { contains: q, mode: "insensitive" } },
+            { form3: { contains: q, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+    ...(image === "with" ? { imageUrl: { not: null } } : {}),
+    ...(image === "without" ? { imageUrl: null } : {}),
+  };
 
   return prisma.verb.findMany({
     where,
@@ -280,6 +286,7 @@ export async function getUserStats(userId: string) {
     problemVerbs,
     typedMistakes,
     orderMistakes,
+    pictureMistakes,
   ] = await Promise.all([
       prisma.$queryRaw<DailyCount[]>`
         SELECT to_char(created_at AT TIME ZONE ${STATS_TIME_ZONE}, 'YYYY-MM-DD') AS day,
@@ -370,12 +377,21 @@ export async function getUserStats(userId: string) {
         orderBy: { _count: { id: "desc" } },
         take: 10,
       }),
+      // «Подбери глагол к картинке»: какую картинку с каким глаголом путал.
+      prisma.trainerMistake.groupBy({
+        by: ["verbId", "chosen"],
+        where: { userId, chosen: { not: null }, trainer: { key: "picture-match" } },
+        _count: { _all: true },
+        _max: { createdAt: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 10,
+      }),
     ]);
 
-  const typedVerbIds = typedMistakes.map((row) => row.verbId);
+  const typedVerbIds = [...typedMistakes, ...pictureMistakes].map((row) => row.verbId);
   const typedVerbs = await prisma.verb.findMany({
     where: { id: { in: typedVerbIds } },
-    select: { id: true, form1: true, form2: true, form3: true },
+    select: { id: true, form1: true, form2: true, form3: true, imageUrl: true },
   });
 
   const sentenceIds = [...mistakes, ...orderMistakes].flatMap((row) =>
@@ -399,5 +415,6 @@ export async function getUserStats(userId: string) {
     typedMistakes,
     typedVerbs,
     orderMistakes,
+    pictureMistakes,
   };
 }

@@ -12,6 +12,28 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // Картинки глаголов лежат в Vercel Blob; разрешаем next/image только наш
+  // путь verbs/ на поддоменах хранилища — чужие URL оптимизатор не возьмёт.
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        port: "",
+        pathname: "/verbs/**",
+        search: "",
+      },
+    ],
+  },
+  experimental: {
+    serverActions: {
+      // Загрузка картинки глагола идёт через server action. Сама картинка —
+      // до 2 МБ (MAX_IMAGE_BYTES в admin-actions.ts), сверху запас на
+      // multipart-разметку. На Vercel тело запроса функции всё равно
+      // ограничено 4,5 МБ, поэтому крупнее не поднимаем.
+      bodySizeLimit: "3mb",
+    },
+  },
 };
 
 export default nextConfig;

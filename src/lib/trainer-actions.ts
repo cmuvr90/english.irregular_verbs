@@ -51,12 +51,14 @@ export async function recordCardView(trainerId: string, verbId: string) {
 
 /**
  * Что ответил студент — для журнала ошибок:
- * - «Выбери форму»: предложение и выбранный вариант;
- * - «Заполни пропуски»: какую форму спрашивали и что студент вписал.
+ * - «Выбери форму» и «Расставь слова»: предложение и ответ;
+ * - «Заполни пропуски»: какую форму спрашивали и что студент вписал;
+ * - «Подбери глагол к картинке»: какой глагол студент выбрал вместо верного.
  */
 export type AnswerChoice =
   | { sentenceId: string; chosen: string }
-  | { form: FormNumber; chosen: string };
+  | { form: FormNumber; chosen: string }
+  | { pickedVerbId: string };
 
 /**
  * Студент оценил карточку: «Знаю» → learned, «Повторить» → repeat.
@@ -193,6 +195,20 @@ async function logMistake(
           chosen = details.chosen;
         }
       }
+    } else if (
+      trainerKey === "picture-match" &&
+      details &&
+      "pickedVerbId" in details &&
+      typeof details.pickedVerbId === "string" &&
+      details.pickedVerbId !== verbId
+    ) {
+      // Пишем тройку форм выбранного глагола, а не id: так её видно в
+      // админке и после удаления этого глагола.
+      const picked = await prisma.verb.findUnique({
+        where: { id: details.pickedVerbId },
+        select: { form1: true, form2: true, form3: true },
+      });
+      if (picked) chosen = `${picked.form1} – ${picked.form2} – ${picked.form3}`;
     } else if (
       trainerKey === "word-order" &&
       details &&

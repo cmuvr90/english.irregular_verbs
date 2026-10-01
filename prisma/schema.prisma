@@ -97,6 +97,9 @@ model Verb {
   form2       String   @map("form_2")
   form3       String   @map("form_3")
   translation Json
+  /// Картинка для тренажёра «Подбери глагол к картинке» — публичный URL
+  /// в Vercel Blob. NULL — картинки нет, в этот тренажёр глагол не попадает.
+  imageUrl    String?  @map("image_url")
   createdAt   DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt   DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
 

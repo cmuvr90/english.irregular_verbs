@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -353,6 +354,64 @@ export default async function UserStatsPage({ params }: Props) {
                       ) : (
                         <span className="text-subtle">предложение удалено</span>
                       )}
+                    </Td>
+                    <Td className="text-right font-mono text-xs tabular-nums">{row._count._all}</Td>
+                    <Td className="whitespace-nowrap text-subtle">
+                      {row._max.createdAt ? dateTimeFormat.format(row._max.createdAt) : "—"}
+                    </Td>
+                  </tr>
+                );
+              })
+            )}
+          </TBody>
+        </TableCard>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-base font-bold">Ошибки по картинкам</h2>
+          <p className="text-sm text-subtle">
+            «Подбери глагол к картинке»: какой глагол студент выбирал вместо изображённого
+          </p>
+        </div>
+        <TableCard>
+          <THead>
+            <Th>Картинка</Th>
+            <Th>Выбрал</Th>
+            <Th className="text-right">Раз</Th>
+            <Th>Последний</Th>
+          </THead>
+          <TBody>
+            {stats.pictureMistakes.length === 0 ? (
+              <EmptyRow colSpan={4}>Ошибок по картинкам пока нет.</EmptyRow>
+            ) : (
+              stats.pictureMistakes.map((row) => {
+                const verb = typedVerbById.get(row.verbId);
+                return (
+                  <tr key={`${row.verbId}:${row.chosen}`}>
+                    <Td>
+                      {verb ? (
+                        <Link
+                          href={`/admin/verbs/${verb.id}`}
+                          className="flex items-center gap-2 font-semibold text-blue-700 hover:underline"
+                        >
+                          {verb.imageUrl && (
+                            <Image
+                              src={verb.imageUrl}
+                              alt=""
+                              width={40}
+                              height={30}
+                              className="h-[30px] w-10 shrink-0 rounded object-cover ring-1 ring-line"
+                            />
+                          )}
+                          {verb.form1} – {verb.form2} – {verb.form3}
+                        </Link>
+                      ) : (
+                        <span className="text-subtle">удалён</span>
+                      )}
+                    </Td>
+                    <Td className="text-orange-800 line-through decoration-orange-400">
+                      {row.chosen}
                     </Td>
                     <Td className="text-right font-mono text-xs tabular-nums">{row._count._all}</Td>
                     <Td className="whitespace-nowrap text-subtle">

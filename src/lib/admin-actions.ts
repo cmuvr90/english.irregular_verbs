@@ -1,5 +1,6 @@
 "use server";
 
+import { del, put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -124,12 +125,117 @@ export async function deleteVerb(id: string) {
   await assertAdmin();
   // Каскадом уходят связи с группами, предложения и прогресс студентов.
   try {
-    await prisma.verb.delete({ where: { id } });
+    const verb = await prisma.verb.delete({ where: { id }, select: { imageUrl: true } });
+    await deleteBlobQuietly(verb.imageUrl);
   } catch (error) {
     if (!isNotFound(error)) throw error;
   }
   revalidateAll();
   redirect("/admin/verbs");
+}
+
+// ── Картинки глаголов (Vercel Blob) ─────────────────────────────────────────
+
+/** Картинка — иллюстрация на карточке, не фото с телефона: 2 МБ с запасом. */
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+/** Форматы, которые показывают все браузеры; расширение — для имени файла. */
+const IMAGE_TYPES: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/avif": "avif",
+};
+
+/**
+ * Хранилище подключено? На Vercel ключ BLOB_READ_WRITE_TOKEN проставляет
+ * интеграция Blob; локально его нужно скопировать в .env.local
+ * (vercel env pull). Без проверки put() упал бы невнятной ошибкой SDK.
+ */
+function blobConfigured() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+}
+
+/**
+ * Удаляет файл из Blob, не роняя основное действие: запись в базе уже
+ * обновлена, а осиротевший файл — копейки места, а не сломанная страница.
+ * Чужие URL (не из Blob) не трогаем.
+ */
+async function deleteBlobQuietly(url: string | null) {
+  if (!url || !blobConfigured()) return;
+  try {
+    if (!new URL(url).hostname.endsWith(".public.blob.vercel-storage.com")) return;
+    await del(url);
+  } catch (error) {
+    console.error("deleteBlob failed:", error);
+  }
+}
+
+export async function uploadVerbImage(
+  verbId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await assertAdmin();
+
+  if (!blobConfigured()) {
+    return {
+      error:
+        "Хранилище картинок не подключено: нет BLOB_READ_WRITE_TOKEN. " +
+        "Подключите Vercel Blob в Storage и выполните vercel env pull .env.local",
+    };
+  }
+
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return { error: "Выберите файл картинки" };
+  const extension = IMAGE_TYPES[file.type];
+  if (!extension) return { error: "Подойдёт PNG, JPEG, WebP или AVIF" };
+  if (file.size > MAX_IMAGE_BYTES) return { error: "Картинка больше 2 МБ — уменьшите её" };
+
+  const verb = await prisma.verb.findUnique({
+    where: { id: verbId },
+    select: { form1: true, imageUrl: true },
+  });
+  if (!verb) return { error: "Глагол удалён — обновите страницу" };
+
+  // Имя по инфинитиву — чтобы в хранилище было видно, чья картинка;
+  // случайный суффикс — чтобы замена давала новый URL и не упиралась в кеш CDN.
+  const slug = verb.form1.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "verb";
+  let url: string;
+  try {
+    const blob = await put(`verbs/${slug}.${extension}`, file, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType: file.type,
+    });
+    url = blob.url;
+  } catch (error) {
+    console.error("uploadVerbImage failed:", error);
+    return { error: "Не удалось загрузить картинку в хранилище — попробуйте ещё раз" };
+  }
+
+  try {
+    await prisma.verb.update({ where: { id: verbId }, data: { imageUrl: url } });
+  } catch (error) {
+    // Запись не обновилась — новый файл никому не нужен.
+    await deleteBlobQuietly(url);
+    const known = knownError(error, { P2025: "Глагол удалён — обновите страницу" });
+    if (known) return known;
+    throw error;
+  }
+
+  await deleteBlobQuietly(verb.imageUrl);
+  revalidateAll();
+  return { saved: true };
+}
+
+export async function removeVerbImage(verbId: string) {
+  await assertAdmin();
+  const verb = await prisma.verb.findUnique({ where: { id: verbId }, select: { imageUrl: true } });
+  if (!verb?.imageUrl) return;
+  await prisma.verb.update({ where: { id: verbId }, data: { imageUrl: null } });
+  await deleteBlobQuietly(verb.imageUrl);
+  revalidateAll();
 }
 
 // ── Группы ──────────────────────────────────────────────────────────────────
