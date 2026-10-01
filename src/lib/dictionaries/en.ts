@@ -143,6 +143,7 @@ const en = {
     fillPlaceholder: "Type the missing form",
     check: "Check",
     yourAnswer: "Your answer",
+    reset: "Clear",
   },
   verbGroups: {
     title: "Verb groups",

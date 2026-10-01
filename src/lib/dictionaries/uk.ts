@@ -132,6 +132,7 @@ const uk: Dictionary = {
     fillPlaceholder: "Впиши форму, якої бракує",
     check: "Перевірити",
     yourAnswer: "Твоя відповідь",
+    reset: "Скинути",
   },
   verbGroups: {
     title: "Групи дієслів",

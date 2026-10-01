@@ -7,6 +7,8 @@ import {
   Eye,
   Lightbulb,
   ListChecks,
+  ListOrdered,
+  Shuffle,
   PenLine,
   Sparkles,
   type LucideIcon,
@@ -26,6 +28,7 @@ export const stepIcons: Record<string, LucideIcon> = {
   "list-checks": ListChecks,
   lightbulb: Lightbulb,
   pencil: PenLine,
+  shuffle: Shuffle,
 };
 
 /**
@@ -37,6 +40,7 @@ const trainerIcons: Record<string, LucideIcon> = {
   flashcards: WalletCards,
   "multiple-choice": ListChecks,
   "fill-blanks": PenLine,
+  "word-order": ListOrdered,
 };
 
 export function trainerIcon(key: string): LucideIcon {

@@ -132,6 +132,7 @@ const be: Dictionary = {
     fillPlaceholder: "Упішы форму, якой не хапае",
     check: "Праверыць",
     yourAnswer: "Твой адказ",
+    reset: "Скінуць",
   },
   verbGroups: {
     title: "Групы дзеясловаў",

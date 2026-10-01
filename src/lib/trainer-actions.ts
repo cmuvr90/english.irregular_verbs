@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { prisma } from "@/lib/prisma";
 import type { SentenceOption } from "@/lib/sentence-options";
+import { fillSentence, isPermutation, sameOrder, tokenize } from "@/lib/word-order";
 import {
   hasAnswer,
   isFormNumber,
@@ -124,6 +125,8 @@ const MISTAKE_DEDUP_MS = 5_000;
 
 /** Вписанный ответ храним не длиннее этого: это слово, а не сочинение. */
 const MAX_TYPED_LENGTH = 60;
+/** Собранное предложение — длиннее слова, но тоже не сочинение. */
+const MAX_ORDER_LENGTH = 300;
 
 /**
  * Строка в журнал ошибок. Отдельный try: сбой журнала не должен помешать
@@ -188,6 +191,27 @@ async function logMistake(
           .map((option) => option.text);
         if (typeof details.chosen === "string" && wrong.includes(details.chosen)) {
           chosen = details.chosen;
+        }
+      }
+    } else if (
+      trainerKey === "word-order" &&
+      details &&
+      "sentenceId" in details &&
+      typeof details.sentenceId === "string"
+    ) {
+      const sentence = await prisma.verbSentence.findFirst({
+        where: { id: details.sentenceId, verbId },
+        select: { id: true, text: true, options: true },
+      });
+      const full = sentence ? fillSentence(sentence.text, sentence.options) : null;
+      if (sentence && full) {
+        sentenceId = sentence.id;
+        // Порядок студента храним, только если это те же слова и порядок
+        // действительно неверный, — иначе в «типичные ошибки» попал бы мусор.
+        const words = tokenize(full);
+        const answer = typeof details.chosen === "string" ? tokenize(details.chosen) : [];
+        if (isPermutation(answer, words) && !sameOrder(answer, words)) {
+          chosen = answer.join(" ").slice(0, MAX_ORDER_LENGTH);
         }
       }
     }

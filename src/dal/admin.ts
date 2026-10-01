@@ -279,6 +279,7 @@ export async function getUserStats(userId: string) {
     recent,
     problemVerbs,
     typedMistakes,
+    orderMistakes,
   ] = await Promise.all([
       prisma.$queryRaw<DailyCount[]>`
         SELECT to_char(created_at AT TIME ZONE ${STATS_TIME_ZONE}, 'YYYY-MM-DD') AS day,
@@ -306,10 +307,11 @@ export async function getUserStats(userId: string) {
         orderBy: { createdAt: "asc" },
         select: { id: true, key: true, name: true },
       }),
-      // Типичные ошибки: какое предложение и какой неверный вариант выбирался чаще всего.
+      // Типичные ошибки «Выбери форму»: какое предложение и какой неверный
+      // вариант выбирался чаще всего.
       prisma.trainerMistake.groupBy({
         by: ["sentenceId", "chosen"],
-        where: { userId, sentenceId: { not: null } },
+        where: { userId, sentenceId: { not: null }, trainer: { key: "multiple-choice" } },
         _count: { _all: true },
         _max: { createdAt: true },
         orderBy: { _count: { id: "desc" } },
@@ -354,6 +356,20 @@ export async function getUserStats(userId: string) {
         orderBy: { _count: { id: "desc" } },
         take: 10,
       }),
+      // «Расставь слова»: какие предложения студент собирал неверно и как.
+      prisma.trainerMistake.groupBy({
+        by: ["sentenceId", "chosen"],
+        where: {
+          userId,
+          sentenceId: { not: null },
+          chosen: { not: null },
+          trainer: { key: "word-order" },
+        },
+        _count: { _all: true },
+        _max: { createdAt: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 10,
+      }),
     ]);
 
   const typedVerbIds = typedMistakes.map((row) => row.verbId);
@@ -362,7 +378,9 @@ export async function getUserStats(userId: string) {
     select: { id: true, form1: true, form2: true, form3: true },
   });
 
-  const sentenceIds = mistakes.flatMap((row) => (row.sentenceId ? [row.sentenceId] : []));
+  const sentenceIds = [...mistakes, ...orderMistakes].flatMap((row) =>
+    row.sentenceId ? [row.sentenceId] : [],
+  );
   const sentences = await prisma.verbSentence.findMany({
     where: { id: { in: sentenceIds } },
     select: { id: true, text: true, options: true, verb: { select: { form1: true } } },
@@ -380,5 +398,6 @@ export async function getUserStats(userId: string) {
     problemVerbs,
     typedMistakes,
     typedVerbs,
+    orderMistakes,
   };
 }

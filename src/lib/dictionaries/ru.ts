@@ -132,6 +132,7 @@ const ru: Dictionary = {
     fillPlaceholder: "Впиши недостающую форму",
     check: "Проверить",
     yourAnswer: "Твой ответ",
+    reset: "Сбросить",
   },
   verbGroups: {
     title: "Группы глаголов",

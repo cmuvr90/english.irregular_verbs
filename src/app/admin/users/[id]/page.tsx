@@ -22,6 +22,7 @@ import { getUserStats, STATS_DAYS, STATS_TIME_ZONE } from "@/dal/admin";
 import { accuracy, fillDays } from "@/lib/admin-stats";
 import { pickLocalized } from "@/lib/locales";
 import { firstCorrectAnswer, splitSentence } from "@/lib/sentence-options";
+import { fillSentence } from "@/lib/word-order";
 import { requireAdmin } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Статистика пользователя" };
@@ -318,6 +319,55 @@ export default async function UserStatsPage({ params }: Props) {
 
       <section className="flex flex-col gap-3">
         <div>
+          <h2 className="text-base font-bold">Ошибки в порядке слов</h2>
+          <p className="text-sm text-subtle">
+            «Расставь слова»: как студент собирал предложение и как правильно
+          </p>
+        </div>
+        <TableCard>
+          <THead>
+            <Th>Собрал</Th>
+            <Th>Верно</Th>
+            <Th className="text-right">Раз</Th>
+            <Th>Последний</Th>
+          </THead>
+          <TBody>
+            {stats.orderMistakes.length === 0 ? (
+              <EmptyRow colSpan={4}>Ошибок в порядке слов пока нет.</EmptyRow>
+            ) : (
+              stats.orderMistakes.map((row) => {
+                const sentence = row.sentenceId ? sentenceById.get(row.sentenceId) : undefined;
+                return (
+                  <tr key={`${row.sentenceId}:${row.chosen}`}>
+                    <Td className="text-orange-800 line-through decoration-orange-400">
+                      {row.chosen}
+                    </Td>
+                    <Td>
+                      {sentence ? (
+                        <Link
+                          href={`/admin/sentences/${sentence.id}`}
+                          className="font-semibold text-blue-700 hover:underline"
+                        >
+                          {fillSentence(sentence.text, sentence.options) ?? sentence.text}
+                        </Link>
+                      ) : (
+                        <span className="text-subtle">предложение удалено</span>
+                      )}
+                    </Td>
+                    <Td className="text-right font-mono text-xs tabular-nums">{row._count._all}</Td>
+                    <Td className="whitespace-nowrap text-subtle">
+                      {row._max.createdAt ? dateTimeFormat.format(row._max.createdAt) : "—"}
+                    </Td>
+                  </tr>
+                );
+              })
+            )}
+          </TBody>
+        </TableCard>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div>
           <h2 className="text-base font-bold">Трудные глаголы</h2>
           <p className="text-sm text-subtle">
             Чаще всего уходили на повторение — за всё время занятий
@@ -380,7 +430,16 @@ export default async function UserStatsPage({ params }: Props) {
                   <Td className="whitespace-nowrap">{pickLocalized(row.trainer.name, "ru")}</Td>
                   <Td className="font-semibold whitespace-nowrap text-blue-600">{row.verb.form1}</Td>
                   <Td>
-                    {row.sentence ? (
+                    {row.sentence && row.trainer.key === "word-order" ? (
+                      <>
+                        <span className="text-orange-800 line-through decoration-orange-400">
+                          {row.chosen ?? "—"}
+                        </span>{" "}
+                        <span className="text-xs text-subtle">
+                          → верно: {fillSentence(row.sentence.text, row.sentence.options) ?? "—"}
+                        </span>
+                      </>
+                    ) : row.sentence ? (
                       <>
                         <Filled text={row.sentence.text} chosen={row.chosen} />{" "}
                         <span className="text-xs text-subtle">

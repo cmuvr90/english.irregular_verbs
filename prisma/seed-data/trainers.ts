@@ -200,4 +200,63 @@ export const trainers: SeedTrainer[] = [
       },
     },
   },
+  {
+    key: "word-order",
+    name: {
+      en: "Put the words in order",
+      be: "Расстаў словы па парадку",
+      uk: "Розстав слова по порядку",
+      pl: "Ułóż słowa w kolejności",
+      ru: "Расставь слова по порядку",
+    },
+    description: {
+      en: "Build an English sentence from shuffled words.",
+      be: "Збяры англійскі сказ з перамяшаных слоў.",
+      uk: "Збери англійське речення з перемішаних слів.",
+      pl: "Złóż angielskie zdanie z pomieszanych słów.",
+      ru: "Собери английское предложение из перемешанных слов.",
+    },
+    settings: {
+      en: {
+        hint: "Tap the words in the right order",
+        steps: [
+          { position: 1, icon: "book-open", name: "Read the meaning", description: "The translation shows what the sentence says." },
+          { position: 2, icon: "shuffle", name: "Put the words in order", description: "The capital letter starts the sentence, the full stop ends it." },
+          { position: 3, icon: "circle-check", name: "Check yourself", description: "A mistake brings the sentence back a few cards later." },
+        ],
+      },
+      be: {
+        hint: "Націскай словы ў правільным парадку",
+        steps: [
+          { position: 1, icon: "book-open", name: "Прачытай сэнс", description: "Пераклад паказвае, пра што сказ." },
+          { position: 2, icon: "shuffle", name: "Расстаў словы", description: "Вялікая літара пачынае сказ, кропка заканчвае." },
+          { position: 3, icon: "circle-check", name: "Правер сябе", description: "Памылка верне сказ праз некалькі картак." },
+        ],
+      },
+      uk: {
+        hint: "Натискай слова в правильному порядку",
+        steps: [
+          { position: 1, icon: "book-open", name: "Прочитай зміст", description: "Переклад показує, про що речення." },
+          { position: 2, icon: "shuffle", name: "Розстав слова", description: "Велика літера починає речення, крапка завершує." },
+          { position: 3, icon: "circle-check", name: "Перевір себе", description: "Помилка поверне речення через кілька карток." },
+        ],
+      },
+      pl: {
+        hint: "Naciskaj słowa we właściwej kolejności",
+        steps: [
+          { position: 1, icon: "book-open", name: "Przeczytaj znaczenie", description: "Tłumaczenie pokazuje, o czym jest zdanie." },
+          { position: 2, icon: "shuffle", name: "Ułóż słowa", description: "Wielka litera zaczyna zdanie, kropka je kończy." },
+          { position: 3, icon: "circle-check", name: "Sprawdź się", description: "Błąd przywróci zdanie za kilka kart." },
+        ],
+      },
+      ru: {
+        hint: "Нажимай слова в правильном порядке",
+        steps: [
+          { position: 1, icon: "book-open", name: "Прочитай смысл", description: "Перевод показывает, о чём предложение." },
+          { position: 2, icon: "shuffle", name: "Расставь слова", description: "Заглавная буква начинает предложение, точка завершает." },
+          { position: 3, icon: "circle-check", name: "Проверь себя", description: "Ошибка вернёт предложение через несколько карточек." },
+        ],
+      },
+    },
+  },
 ];

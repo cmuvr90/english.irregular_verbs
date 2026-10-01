@@ -132,6 +132,7 @@ const pl: Dictionary = {
     fillPlaceholder: "Wpisz brakującą formę",
     check: "Sprawdź",
     yourAnswer: "Twoja odpowiedź",
+    reset: "Wyczyść",
   },
   verbGroups: {
     title: "Grupy czasowników",

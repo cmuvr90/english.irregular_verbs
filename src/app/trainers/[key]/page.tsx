@@ -5,6 +5,7 @@ import { cache } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { FillBlanksTrainer } from "@/components/trainers/fill-blanks-trainer";
 import { FlashcardsTrainer } from "@/components/trainers/flashcards-trainer";
+import { WordOrderTrainer, type OrderSentence } from "@/components/trainers/word-order-trainer";
 import {
   MultipleChoiceTrainer,
   type ChoiceSentence,
@@ -16,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { parseBlanks, validateSentence, type SentenceOptions } from "@/lib/sentence-options";
 import { requireSession } from "@/lib/session";
 import type { TrainerSettings } from "@/lib/trainer-settings";
+import { fillSentence } from "@/lib/word-order";
 
 type Props = {
   params: Promise<{ key: string }>;
@@ -288,6 +290,67 @@ export default async function TrainerPage({ params, searchParams }: Props) {
             correct: t.correct,
             wrong: t.wrong,
             correctAnswer: t.correctAnswer,
+            next: t.next,
+            finishTitle: t.finishTitle,
+            scoreText: t.scoreText,
+            correctCount: t.correctCount,
+            mistakes: t.mistakes,
+            again: t.again,
+            empty: t.empty,
+            back: t.back,
+          }}
+          backHref={backHref}
+          seed={seed}
+        />
+
+        <BottomNav labels={navLabels(dict)} />
+      </main>
+    );
+  }
+
+  if (trainer.key === "word-order") {
+    const settings = resolveSettings(trainer.settings, locale);
+    if (!settings) notFound();
+
+    // Те же опубликованные предложения, что у «Выбери форму», только целиком:
+    // на месте пропуска — верная форма.
+    const sentences = (await loadSentences(groupKey, locale)).flatMap((row): OrderSentence[] => {
+      const sentence = fillSentence(row.text, row.options);
+      return sentence
+        ? [
+            {
+              id: row.id,
+              verbId: row.verbId,
+              sentence,
+              translation: row.translation,
+              explanation: row.explanation,
+            },
+          ]
+        : [];
+    });
+    const progress = await loadProgress(
+      session.user.id,
+      trainer.id,
+      sentences.map((sentence) => sentence.verbId),
+    );
+
+    return (
+      <main className="flex-1 bg-white">
+        <WordOrderTrainer
+          trainerId={trainer.id}
+          title={title}
+          settings={settings}
+          sentences={sentences}
+          progress={progress}
+          labels={{
+            howItWorks: t.howItWorks,
+            check: t.check,
+            reset: t.reset,
+            yourAnswer: t.yourAnswer,
+            correct: t.correct,
+            wrong: t.wrong,
+            correctAnswer: t.correctAnswer,
+            why: t.why,
             next: t.next,
             finishTitle: t.finishTitle,
             scoreText: t.scoreText,
