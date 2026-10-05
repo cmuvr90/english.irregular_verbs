@@ -12,8 +12,8 @@ const isDev = process.env.NODE_ENV === "development";
  * Better Auth сверяет Origin запроса с baseURL, поэтому важно, чтобы адрес
  * совпадал с тем, на котором реально поднялось приложение.
  *
- * В dev разрешаем любой локальный порт: если 3000 занят, Next.js молча
- * переезжает на 3001 — с жёстко прописанным адресом это давало "Invalid origin".
+ * В dev разрешаем любой локальный порт: если 3010 занят, Next.js молча
+ * переезжает на 3011 — с жёстко прописанным адресом это давало "Invalid origin".
  * Шаблон 192.168.*:* пускает и с других устройств домашней сети (IP по DHCP),
  * аналогично allowedDevOrigins в next.config.ts.
  */
@@ -22,7 +22,7 @@ function getBaseURL() {
     return {
       allowedHosts: ["localhost:*", "127.0.0.1:*", "192.168.*:*"],
       protocol: "http" as const,
-      fallback: "http://localhost:3000",
+      fallback: "http://localhost:3010",
     };
   }
   if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL;

@@ -29,6 +29,8 @@ model User {
   trainerProgress TrainerVerbProgress[]
   trainerMistakes TrainerMistake[]
   activityDays    UserActivityDay[]
+  answerRun       UserAnswerRun?
+  achievements    UserAchievement[]
 
   sentencesCreated VerbSentence[] @relation("SentenceAuthor")
   sentencesUpdated VerbSentence[] @relation("SentenceEditor")
@@ -322,4 +324,31 @@ model UserActivityDay {
 
   @@id([userId, day])
   @@map("user_activity_days")
+}
+
+/// Серия верных ответов подряд во всех тренажёрах: ошибка обнуляет текущую,
+/// лучшая остаётся. Из одних счётчиков trainer_verb_progress порядок ответов
+/// не восстановить, поэтому серия ведётся отдельно.
+model UserAnswerRun {
+  userId  String @id @map("user_id")
+  current Int    @default(0)
+  best    Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_answer_runs")
+}
+
+/// Полученные награды. Список наград живёт в коде (src/lib/achievements.ts),
+/// здесь — только факт и дата получения: кубок остаётся навсегда, даже если
+/// серия потом прервалась.
+model UserAchievement {
+  userId   String   @map("user_id")
+  key      String
+  earnedAt DateTime @default(now()) @db.Timestamptz(3) @map("earned_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, key])
+  @@map("user_achievements")
 }

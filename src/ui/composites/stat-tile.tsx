@@ -42,8 +42,11 @@ export function StatsStrip({ stats, className }: { stats: Stat[]; className?: st
         className="grid divide-x divide-hairline"
         style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}
       >
-        {stats.map((s) => (
-          <StatTile key={s.label} {...s} />
+        {/* Ключ — позиция, а не подпись: при смене языка подписи меняются, и
+            перемонтированные плитки остались бы в «hidden» — анимация
+            появления (once) уже отыграла. */}
+        {stats.map((s, i) => (
+          <StatTile key={i} {...s} />
         ))}
       </m.div>
     </Card>

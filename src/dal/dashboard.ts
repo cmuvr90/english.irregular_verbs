@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { prisma } from "@/lib/prisma";
 import { dayIn, shiftDay } from "@/lib/time-zone";
 
@@ -92,7 +94,7 @@ function levelFor(learned: number, total: number): Level {
  * Серия — подряд идущие дни с ответами, считая назад от сегодня. Сегодня
  * ещё не занимался — серия не сгорает до конца дня: считаем от вчера.
  */
-function streakLength(activeDays: Set<string>, today: string) {
+export function streakLength(activeDays: Set<string>, today: string) {
   let day = activeDays.has(today) ? today : shiftDay(today, -1);
   let streak = 0;
   while (activeDays.has(day)) {
@@ -100,6 +102,19 @@ function streakLength(activeDays: Set<string>, today: string) {
     day = shiftDay(day, -1);
   }
   return streak;
+}
+
+/** Самая длинная серия подряд идущих дней за всю историю; дни — по возрастанию. */
+export function longestStreak(sortedDays: string[]) {
+  let best = 0;
+  let current = 0;
+  let previous: string | null = null;
+  for (const day of sortedDays) {
+    current = previous && shiftDay(previous, 1) === day ? current + 1 : 1;
+    best = Math.max(best, current);
+    previous = day;
+  }
+  return best;
 }
 
 /** Текущая неделя с понедельника: занимался / сегодня / пропуск / впереди. */
@@ -146,11 +161,30 @@ async function trainerProgress(
     prisma.trainerVerbProgress.count({
       where: { userId, trainerId: trainer.id, status: "learned" },
     }),
-    SENTENCE_TRAINERS.has(trainer.key)
-      ? prisma.verb.count({ where: { sentences: { some: { status: "published" } } } })
-      : trainer.key === "picture-match"
-        ? prisma.verb.count({ where: { imageUrl: { not: null } } })
-        : prisma.verb.count(),
+    deckSize(trainer.key),
   ]);
   return { ...trainer, learned, total };
 }
+
+/**
+ * Сколько глаголов в колоде тренажёра: не каждый глагол годится для каждого.
+ * Колод всего три вида, а тренажёров больше — счёт кэшируется на запрос,
+ * чтобы одинаковые подсчёты не уходили в БД по нескольку раз.
+ */
+export function deckSize(trainerKey: string) {
+  return countDeck(
+    SENTENCE_TRAINERS.has(trainerKey)
+      ? "sentences"
+      : trainerKey === "picture-match"
+        ? "pictures"
+        : "all",
+  );
+}
+
+const countDeck = cache(async (deck: "sentences" | "pictures" | "all") =>
+  deck === "sentences"
+    ? prisma.verb.count({ where: { sentences: { some: { status: "published" } } } })
+    : deck === "pictures"
+      ? prisma.verb.count({ where: { imageUrl: { not: null } } })
+      : prisma.verb.count(),
+);

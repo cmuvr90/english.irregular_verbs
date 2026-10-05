@@ -22,8 +22,8 @@ export function BottomNav({ labels }: { labels: BottomNavLabels }) {
   const items: TabItem[] = [
     { key: "home", icon: IconHome, label: labels.home, href: "/dashboard" },
     { key: "trainers", icon: IconTrainers, label: labels.trainers, href: "/trainers" },
-    { key: "progress", icon: IconProgress, label: labels.progress, href: "/coming-soon" },
-    { key: "profile", icon: IconProfile, label: labels.profile, href: "/coming-soon" },
+    { key: "progress", icon: IconProgress, label: labels.progress, href: "/progress" },
+    { key: "profile", icon: IconProfile, label: labels.profile, href: "/profile" },
   ];
 
   // Заглушка /coming-soon стоит за несколькими вкладками — подсвечиваем

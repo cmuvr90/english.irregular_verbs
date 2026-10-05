@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 
+import { syncAchievements } from "@/dal/achievements";
 import { prisma } from "@/lib/prisma";
 import type { SentenceOption } from "@/lib/sentence-options";
 import { fillSentence, isPermutation, sameOrder, tokenize } from "@/lib/word-order";
@@ -120,6 +121,8 @@ export async function answerCard(
     // Активность — только после успешной записи прогресса: вызов с битым
     // id глагола (экшен — публичный эндпоинт) не должен накручивать серию.
     await recordActivity(session.user.id, answer === "know");
+    await recordRun(session.user.id, answer === "know");
+    await recordAchievements(session.user.id);
   } catch (error) {
     console.error("answerCard failed:", error);
   }
@@ -144,6 +147,41 @@ async function recordActivity(userId: string, correct: boolean) {
     `;
   } catch (error) {
     console.error("recordActivity failed:", error);
+  }
+}
+
+/**
+ * Серия верных ответов подряд: «знаю» продлевает её, ошибка обнуляет.
+ * Лучшая серия только растёт — по ней выдаются награды «без ошибок».
+ */
+async function recordRun(userId: string, correct: boolean) {
+  try {
+    if (correct) {
+      await prisma.$executeRaw`
+        INSERT INTO user_answer_runs (user_id, current, best)
+        VALUES (${userId}, 1, 1)
+        ON CONFLICT (user_id) DO UPDATE SET
+          current = user_answer_runs.current + 1,
+          best = GREATEST(user_answer_runs.best, user_answer_runs.current + 1)
+      `;
+    } else {
+      await prisma.userAnswerRun.upsert({
+        where: { userId },
+        create: { userId, current: 0 },
+        update: { current: 0 },
+      });
+    }
+  } catch (error) {
+    console.error("recordRun failed:", error);
+  }
+}
+
+/** Выдаёт награды, заслуженные этим ответом. Сбой наград не мешает прогрессу. */
+async function recordAchievements(userId: string) {
+  try {
+    await syncAchievements(userId, await getTimeZone());
+  } catch (error) {
+    console.error("recordAchievements failed:", error);
   }
 }
 
