@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AdminLink } from "@/components/admin-link";
 import { BottomNav } from "@/components/bottom-nav";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Mascot } from "@/components/mascot";
@@ -8,7 +9,6 @@ import { getDashboardStats, type WeekDay } from "@/dal/dashboard";
 import { getDictionary } from "@/lib/dictionaries";
 import { getLocale } from "@/lib/i18n";
 import { interpolate, pickLocalized, plural } from "@/lib/locales";
-import { isAdmin } from "@/lib/roles";
 import { requireSession } from "@/lib/session";
 import { getTimeZone } from "@/lib/time-zone-server";
 import { ContinueCard } from "@/ui/composites/continue-card";
@@ -20,7 +20,6 @@ import { StatsStrip } from "@/ui/composites/stat-tile";
 import { type StreakDay, StreakCard } from "@/ui/composites/streak-card";
 import { TopBar } from "@/ui/composites/top-bar";
 import {
-  IconAdmin,
   IconCalendar,
   IconLanguage,
   IconProgress,
@@ -32,7 +31,6 @@ import {
 } from "@/ui/icons";
 import { Badge } from "@/ui/primitives/badge";
 import { Card } from "@/ui/primitives/card";
-import { IconButtonLink } from "@/ui/primitives/icon-button-link";
 import { trainerLook } from "@/ui/trainer-icons";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -84,9 +82,7 @@ export default async function DashboardPage() {
             <Badge tone="v2" icon={IconStreak} className="h-9 px-3.5 text-sm">
               {stats.streak}
             </Badge>
-            {isAdmin(session.user) && (
-              <IconButtonLink href="/admin" icon={IconAdmin} label={dict.common.admin} />
-            )}
+            <AdminLink label={dict.common.admin} />
             <SignOutButton label={dict.auth.signOut} />
           </>
         }

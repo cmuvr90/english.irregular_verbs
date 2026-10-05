@@ -92,8 +92,14 @@ export function useVerbSpeech() {
           audio.onended = () => {
             timer = window.setTimeout(() => next(i + 1), FORM_PAUSE_MS);
           };
-          audio.onerror = stop;
-          audio.play().catch(stop);
+          // Файл не загрузился — обрываем, но не молча: иначе не понять,
+          // почему тройка прозвучала не целиком.
+          const fail = (reason: unknown) => {
+            console.warn(`verb audio ${i + 1} failed:`, audio.src, reason);
+            stop();
+          };
+          audio.onerror = () => fail(audio.error);
+          audio.play().catch(fail);
         };
         stopFiles.current = stop;
         setSpeaking(true);

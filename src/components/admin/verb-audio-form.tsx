@@ -8,6 +8,7 @@ import {
   Square,
   Trash2,
   Upload,
+  Volume2,
   VolumeOff,
   X,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { buttonClass, Card } from "./ui";
 
 import { removeVerbAudio, uploadVerbAudio, type FormNumber } from "@/lib/admin-actions";
 import { processAudio, useAudioRecorder } from "@/lib/audio-recording";
+import { spokenTriple, useVerbSpeech } from "@/lib/speech";
 
 /** Любой звук, который декодирует браузер: перед загрузкой он всё равно станет MP3. */
 const AUDIO_ACCEPT = "audio/*,.mp3,.m4a,.aac,.wav,.ogg,.webm";
@@ -42,6 +44,14 @@ export function VerbAudioForm({
 }) {
   const countdown = useCountdown();
   const complete = forms.every((slot) => slot.audioUrl);
+  // Только что загруженные записи (object URL) по номеру формы: «Прослушать
+  // все» играет их из памяти, как и плеер формы, — CDN может ещё не отдавать
+  // свежий файл. undefined — свежей записи нет, берём audioUrl.
+  const [fresh, setFresh] = useState<Partial<Record<FormNumber, string | null>>>({});
+  const playable = forms.map((slot, i) => {
+    const url = fresh[(i + 1) as FormNumber];
+    return { ...slot, audioUrl: url === undefined ? slot.audioUrl : url };
+  }) as [AudioSlot, AudioSlot, AudioSlot];
 
   return (
     <Card
@@ -53,6 +63,7 @@ export function VerbAudioForm({
       }
     >
       <div className="flex flex-col gap-3">
+        <PlayAll forms={playable} />
         <CountdownToggle countdown={countdown} />
 
         {forms.map((slot, i) => (
@@ -62,6 +73,7 @@ export function VerbAudioForm({
             form={(i + 1) as FormNumber}
             fileName={audioFileName(infinitive, (i + 1) as FormNumber)}
             countdown={countdown}
+            onAudioChange={(url) => setFresh((prev) => ({ ...prev, [i + 1]: url }))}
             {...slot}
           />
         ))}
@@ -71,6 +83,45 @@ export function VerbAudioForm({
 }
 
 type AudioSlot = { text: string; audioUrl: string | null };
+
+/**
+ * «Прослушать все» — три формы подряд, как в тренажёре: полная тройка
+ * файлов играет по очереди, иначе тройку проговаривает синтез браузера
+ * (то же правило, что в src/app/trainers/[key]/page.tsx).
+ */
+function PlayAll({ forms }: { forms: [AudioSlot, AudioSlot, AudioSlot] }) {
+  const { support, speaking, play } = useVerbSpeech();
+  const [form1, form2, form3] = forms;
+  const audioUrls =
+    form1.audioUrl && form2.audioUrl && form3.audioUrl
+      ? [form1.audioUrl, form2.audioUrl, form3.audioUrl]
+      : null;
+  // Без файлов играть нечем, если браузер не умеет синтез.
+  const unavailable = !audioUrls && support !== "ready";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        disabled={speaking || unavailable}
+        onClick={() =>
+          play(spokenTriple({ form1: form1.text, form2: form2.text, form3: form3.text }), audioUrls)
+        }
+        className={buttonClass.outline}
+      >
+        {speaking ? <LoaderCircle className="animate-spin" /> : <Volume2 />}
+        {speaking ? "Звучит…" : "Прослушать все"}
+      </button>
+      <span className="text-xs text-subtle">
+        {audioUrls
+          ? "Записи"
+          : support === "unsupported"
+            ? "Браузер не умеет синтез речи"
+            : "Голос браузера — записаны не все формы"}
+      </span>
+    </div>
+  );
+}
 
 /** Имя файла озвучки, как на сервере: read_1.mp3. */
 export function audioFileName(infinitive: string, form: FormNumber) {
@@ -107,7 +158,15 @@ export function AudioField({
   audioUrl,
   fileName,
   countdown,
-}: AudioSlot & { verbId: string; form: FormNumber; fileName: string; countdown: boolean }) {
+  onAudioChange,
+}: AudioSlot & {
+  verbId: string;
+  form: FormNumber;
+  fileName: string;
+  countdown: boolean;
+  /** Файл формы загружен (URL записи в памяти) или удалён (null). */
+  onAudioChange?: (url: string | null) => void;
+}) {
   const [draft, setDraft] = useState<Draft | null>(null);
   // Только что загруженная запись. Играем её из памяти, а не с CDN: сразу
   // после перезаписи файла CDN может ещё не отдавать его по новому адресу,
@@ -147,6 +206,7 @@ export function AudioField({
   async function chooseFile(file: File | undefined) {
     if (!file) return;
     setFieldError(null);
+    recorder.clearError();
     setConverting(true);
     try {
       const mp3 = await processAudio(file, fileName);
@@ -162,12 +222,14 @@ export function AudioField({
 
   function upload(take: Draft) {
     setFieldError(null);
+    recorder.clearError();
     startUploading(async () => {
       const formData = new FormData();
       formData.set(`audio_${form}`, take.file);
       const result = await uploadVerbAudio(verbId, {}, formData);
       if (result.error) return setFieldError(result.error);
       setUploadedUrl(take.url);
+      onAudioChange?.(take.url);
       setDraft(null);
     });
   }
@@ -276,6 +338,7 @@ export function AudioField({
                   startRemoving(async () => {
                     await removeVerbAudio(verbId, form);
                     setUploadedUrl(null);
+                    onAudioChange?.(null);
                   });
                 }}
                 className="rounded-full p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50 [&_svg]:size-4"

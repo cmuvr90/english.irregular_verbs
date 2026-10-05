@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AdminLink } from "@/components/admin-link";
 import { BottomNav } from "@/components/bottom-nav";
 import { getDictionary } from "@/lib/dictionaries";
 import { getLocale } from "@/lib/i18n";
@@ -44,6 +45,7 @@ export default async function VerbGroupsPage() {
         back={{ href: "/dashboard", label: t.backToDashboard }}
         title={t.title}
         subtitle={t.subtitle}
+        actions={<AdminLink label={dict.common.admin} />}
       />
 
       {/* pt-24 освобождает место под фиксированную шапку, pb-32 — под таб-бар */}

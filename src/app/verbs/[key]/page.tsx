@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { AdminLink } from "@/components/admin-link";
 import { BottomNav } from "@/components/bottom-nav";
 import { getDictionary } from "@/lib/dictionaries";
 import { getLocale } from "@/lib/i18n";
@@ -50,7 +51,11 @@ export default async function VerbGroupPage({ params }: Props) {
 
   return (
     <main className="flex-1 bg-canvas">
-      <TopBar back={{ href: "/verbs", label: t.back }} title={pickLocalized(group.name, locale)} />
+      <TopBar
+        back={{ href: "/verbs", label: t.back }}
+        title={pickLocalized(group.name, locale)}
+        actions={<AdminLink label={dict.common.admin} />}
+      />
 
       {/* pt-24 освобождает место под фиксированную шапку, pb-32 — под таб-бар */}
       <div className="mx-auto w-full max-w-md px-4 pt-24 pb-32">

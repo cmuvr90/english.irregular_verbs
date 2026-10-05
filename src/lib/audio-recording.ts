@@ -159,7 +159,10 @@ export function useAudioRecorder(onRecorded: (file: File) => void, fileName: str
 
   const cancel = useCallback(() => cancelRef.current?.(), []);
 
-  return { status, count, elapsedMs, error, start, stop, cancel };
+  /** Убрать ошибку прошлой попытки — например, когда вместо записи выбрали файл. */
+  const clearError = useCallback(() => setError(null), []);
+
+  return { status, count, elapsedMs, error, start, stop, cancel, clearError };
 }
 
 /**

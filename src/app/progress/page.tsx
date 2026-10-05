@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AdminLink } from "@/components/admin-link";
 import { BottomNav } from "@/components/bottom-nav";
 import { type AchievementView, getAchievements } from "@/dal/achievements";
 import { ACHIEVEMENT_KINDS, type AchievementKind } from "@/lib/achievements";
@@ -52,7 +53,7 @@ export default async function ProgressPage() {
 
   return (
     <main className="flex-1 bg-canvas">
-      <TopBar title={t.title} />
+      <TopBar title={t.title} actions={<AdminLink label={dict.common.admin} />} />
 
       {/* pt-24 освобождает место под фиксированную шапку, pb-32 — под таб-бар */}
       <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-24 pb-32">

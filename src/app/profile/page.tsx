@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AdminLink } from "@/components/admin-link";
 import { BottomNav } from "@/components/bottom-nav";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -56,7 +57,12 @@ export default async function ProfilePage() {
     <main className="flex-1 bg-canvas">
       <TopBar
         title={t.title}
-        actions={<SignOutButton label={dict.auth.signOut} />}
+        actions={
+          <>
+            <AdminLink label={dict.common.admin} />
+            <SignOutButton label={dict.auth.signOut} />
+          </>
+        }
       />
 
       {/* pt-24 освобождает место под фиксированную шапку, pb-32 — под таб-бар */}
