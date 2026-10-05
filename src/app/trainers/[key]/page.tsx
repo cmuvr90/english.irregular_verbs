@@ -181,7 +181,7 @@ export default async function TrainerPage({ params, searchParams }: Props) {
     );
 
     return (
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-canvas">
         <FlashcardsTrainer
           trainerId={trainer.id}
           title={title}
@@ -226,7 +226,7 @@ export default async function TrainerPage({ params, searchParams }: Props) {
     );
 
     return (
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-canvas">
         <MultipleChoiceTrainer
           trainerId={trainer.id}
           title={title}
@@ -271,7 +271,7 @@ export default async function TrainerPage({ params, searchParams }: Props) {
     );
 
     return (
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-canvas">
         <FillBlanksTrainer
           trainerId={trainer.id}
           title={title}
@@ -329,8 +329,11 @@ export default async function TrainerPage({ params, searchParams }: Props) {
       form3: verb.form3,
       translation: pickLocalized(verb.translation, locale),
       groupIds: verb.groups.map((g) => g.verbGroupId),
-      // Записанного аудио пока нет — звучит синтез браузера (см. src/lib/speech.ts).
-      audioUrl: null,
+      // Озвучка — только полная тройка; иначе синтез браузера (см. src/lib/speech.ts).
+      audioUrls:
+        verb.audio1Url && verb.audio2Url && verb.audio3Url
+          ? [verb.audio1Url, verb.audio2Url, verb.audio3Url]
+          : null,
     });
     const choices = all.map(toListening);
     const verbs = groupKey
@@ -343,7 +346,7 @@ export default async function TrainerPage({ params, searchParams }: Props) {
     );
 
     return (
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-canvas">
         <ListeningTrainer
           trainerId={trainer.id}
           title={title}
@@ -413,7 +416,7 @@ export default async function TrainerPage({ params, searchParams }: Props) {
     );
 
     return (
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-canvas">
         <PictureMatchTrainer
           trainerId={trainer.id}
           title={title}
@@ -471,7 +474,7 @@ export default async function TrainerPage({ params, searchParams }: Props) {
     );
 
     return (
-      <main className="flex-1 bg-white">
+      <main className="flex-1 bg-canvas">
         <WordOrderTrainer
           trainerId={trainer.id}
           title={title}

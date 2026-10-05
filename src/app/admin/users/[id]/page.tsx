@@ -21,6 +21,7 @@ import {
 } from "@/components/admin/ui";
 import { getUserStats, STATS_DAYS, STATS_TIME_ZONE } from "@/dal/admin";
 import { accuracy, fillDays } from "@/lib/admin-stats";
+import { isPrecompressedImage } from "@/lib/image-compression";
 import { pickLocalized } from "@/lib/locales";
 import { firstCorrectAnswer, splitSentence } from "@/lib/sentence-options";
 import { fillSentence } from "@/lib/word-order";
@@ -407,6 +408,7 @@ export default async function UserStatsPage({ params }: Props) {
                               alt=""
                               width={40}
                               height={30}
+                              unoptimized={isPrecompressedImage(verb.imageUrl)}
                               className="h-[30px] w-10 shrink-0 rounded object-cover ring-1 ring-line"
                             />
                           )}

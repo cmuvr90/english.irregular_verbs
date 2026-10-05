@@ -15,6 +15,8 @@ export const buttonClass = {
   primary: `${buttonBase} bg-blue-600 text-white hover:bg-blue-600/85`,
   outline: `${buttonBase} border border-line bg-white hover:bg-muted`,
   destructive: `${buttonBase} bg-red-500/10 text-red-600 hover:bg-red-500/20`,
+  /** Подтвердить готовый результат (загрузить запись) — рядом с primary-действием. */
+  success: `${buttonBase} bg-emerald-600 text-white hover:bg-emerald-600/85`,
   link: "inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 underline-offset-4 hover:underline [&_svg]:size-4",
 };
 

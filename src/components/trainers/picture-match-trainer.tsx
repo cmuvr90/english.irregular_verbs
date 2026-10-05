@@ -1,16 +1,29 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CircleCheck, CircleX, Flame, RotateCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { FlashcardProgress } from "@/components/trainers/flashcards-trainer";
+import { isPrecompressedImage } from "@/lib/image-compression";
 import { interpolate } from "@/lib/locales";
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
 import { buildDeck, mulberry32, REPEAT_AFTER, shuffle } from "@/lib/trainer-deck";
-import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
+import { AnswerSheet } from "@/ui/composites/answer-sheet";
+import { type ChoiceState, ChoiceOption } from "@/ui/composites/choice-option";
+import { EmptyState } from "@/ui/composites/empty-state";
+import { SessionProgress } from "@/ui/composites/session-progress";
+import { SessionSummary } from "@/ui/composites/session-summary";
+import { TopBar } from "@/ui/composites/top-bar";
+import { TrainerSteps } from "@/ui/composites/trainer-steps";
+import { IconReview, IconStreak } from "@/ui/icons";
+import { Badge } from "@/ui/primitives/badge";
+import { Button } from "@/ui/primitives/button";
+import { buttonClass } from "@/ui/primitives/button-styles";
+import { Card } from "@/ui/primitives/card";
+import { VerbForm } from "@/ui/primitives/verb-form";
+import { stepIcon } from "@/ui/trainer-icons";
 
 /**
  * Тренажёр «Подбери глагол к картинке» (picture-match): картинка и четыре
@@ -29,7 +42,12 @@ export type PictureVerb = {
 };
 
 /** Глагол-дистрактор: картинка ему не нужна, только формы. */
-export type ChoiceVerb = { id: string; form1: string; form2: string; form3: string };
+export type ChoiceVerb = {
+  id: string;
+  form1: string;
+  form2: string;
+  form3: string;
+};
 
 export type PictureMatchLabels = {
   howItWorks: string;
@@ -65,12 +83,6 @@ type Task = { verb: PictureVerb; options: ChoiceVerb[] };
 /** Сколько вариантов ответа показываем, включая верный. */
 const OPTION_COUNT = 4;
 const OPTION_LETTERS = "abcd";
-
-const stepChips = [
-  "bg-violet-100 text-violet-600",
-  "bg-blue-100 text-blue-600",
-  "bg-emerald-100 text-emerald-600",
-];
 
 const triple = (v: ChoiceVerb) => `${v.form1} – ${v.form2} – ${v.form3}`;
 
@@ -126,6 +138,7 @@ export function PictureMatchTrainer({
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionWrong, setSessionWrong] = useState(0);
 
+  /** Обёртка листа разбора: из неё достаём кнопку «Дальше» для фокуса. */
   const nextRef = useRef<HTMLButtonElement>(null);
 
   const task = !finished ? deck[index] : undefined;
@@ -195,206 +208,149 @@ export function PictureMatchTrainer({
     setPicked(null);
   };
 
-  return (
-    <div className="mx-auto w-full max-w-md px-5 pt-6 pb-28">
-      {/* шапка: назад, название, огонёк выученных */}
-      <div className="flex items-center gap-3">
-        <Link
-          href={backHref}
-          aria-label={labels.back}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line/60 bg-white text-foreground shadow-sm transition-colors hover:bg-muted"
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-bold tracking-tight">{title}</h1>
-          <p className="text-sm text-subtle">{labels.howItWorks}</p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/60 bg-white py-2 pr-3.5 pl-3 shadow-sm">
-          <Flame size={18} className="text-orange-500" />
-          <span className="font-semibold text-blue-600">{learnedCount}</span>
-        </span>
-      </div>
+  const rightForms = task && (
+    <span className="flex flex-wrap gap-2">
+      <VerbForm form="v1" word={task.verb.form1} size="sm" />
+      <VerbForm form="v2" word={task.verb.form2} size="sm" />
+      <VerbForm form="v3" word={task.verb.form3} size="sm" />
+    </span>
+  );
 
-      {deck.length === 0 ? (
-        <p className="mt-10 rounded-3xl border border-line/60 bg-white p-6 text-center text-subtle">
-          {labels.empty}
-        </p>
-      ) : finished ? (
-        /* экран итогов */
-        <div className="mt-8 flex flex-col items-center rounded-3xl border border-line/60 bg-white p-8 text-center">
-          <CircleCheck size={56} className="text-emerald-500" />
-          <h2 className="mt-4 text-2xl font-bold">{labels.finishTitle}</h2>
-          <p className="mt-1 text-subtle">
-            {interpolate(labels.scoreText, {
+  return (
+    <>
+      <TopBar
+        title={title}
+        subtitle={labels.howItWorks}
+        back={{ href: backHref, label: labels.back }}
+        actions={
+          <Badge tone="v2" icon={IconStreak} className="h-9 px-3.5 text-sm">
+            {learnedCount}
+          </Badge>
+        }
+      />
+
+      {/* pt-24 — место под шапку; снизу — под таб-бар или лист разбора */}
+      <div className={`mx-auto w-full max-w-md px-4 pt-24 ${answered ? "pb-96" : "pb-32"}`}>
+        {deck.length === 0 ? (
+          <EmptyState title={labels.empty} className="mt-6" />
+        ) : finished ? (
+          <SessionSummary
+            className="mt-4"
+            title={labels.finishTitle}
+            text={interpolate(labels.scoreText, {
               correct: sessionCorrect,
               total: sessionCorrect + sessionWrong,
             })}
-          </p>
-
-          <dl className="mt-6 grid w-full grid-cols-2 divide-x divide-line/60">
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-emerald-600">{sessionCorrect}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.correctCount}</dt>
-            </div>
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-rose-500">{sessionWrong}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.mistakes}</dt>
-            </div>
-          </dl>
-
-          <button
-            type="button"
-            onClick={restart}
-            className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            <RotateCw size={18} />
-            {labels.again}
-          </button>
-          <Link
-            href={backHref}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-line/60 bg-white py-3.5 font-medium transition-colors hover:bg-muted"
-          >
-            {labels.back}
-          </Link>
-        </div>
-      ) : (
-        task && (
-          <>
-            {/* прогресс сессии */}
-            <div className="mt-5 flex items-center gap-3">
-              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line/60">
-                <div
-                  className="h-full rounded-full bg-blue-600 transition-[width] duration-300"
-                  style={{ width: `${((index + 1) / deck.length) * 100}%` }}
-                />
-              </div>
-              <span className="shrink-0 text-sm font-semibold">
-                {index + 1}
-                <span className="font-normal text-subtle"> / {deck.length}</span>
-              </span>
-            </div>
-
-            {/* картинка; alt пустой намеренно — подпись выдала бы ответ */}
-            <div className="relative mt-5 aspect-[4/3] w-full overflow-hidden rounded-3xl border border-line/60 bg-white shadow-sm">
-              <Image
-                src={task.verb.imageUrl}
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 448px) 100vw, 448px"
-                className="object-contain p-3"
+            illustration={{ src: "/images/app/mascot-celebrate.webp", alt: "" }}
+            stats={[
+              {
+                value: sessionCorrect,
+                label: labels.correctCount,
+                tone: "success",
+              },
+              { value: sessionWrong, label: labels.mistakes, tone: "v2" },
+            ]}
+            actions={
+              <>
+                <Button size="lg" block icon={IconReview} onClick={restart}>
+                  {labels.again}
+                </Button>
+                <Link
+                  href={backHref}
+                  className={buttonClass({
+                    variant: "secondary",
+                    size: "lg",
+                    block: true,
+                  })}
+                >
+                  {labels.back}
+                </Link>
+              </>
+            }
+          />
+        ) : (
+          task && (
+            <>
+              <SessionProgress
+                current={index + 1}
+                total={deck.length}
+                label={title}
+                tone="success"
               />
-            </div>
-            {!answered && <p className="mt-3 text-center text-sm text-subtle">{settings.hint}</p>}
 
-            {/* варианты */}
-            <ul className="mt-4 flex flex-col gap-2.5">
-              {task.options.map((option, i) => {
-                const isRight = option.id === task.verb.id;
-                const isPicked = option.id === picked;
-                const state = !answered ? "idle" : isRight ? "right" : isPicked ? "wrong" : "muted";
-                return (
-                  <li key={option.id}>
-                    <button
-                      type="button"
-                      onClick={() => onPick(option)}
-                      disabled={answered}
-                      aria-pressed={isPicked}
-                      className={`flex w-full items-center gap-3.5 rounded-2xl border p-4 text-left transition-colors ${
-                        state === "right"
-                          ? "border-emerald-500 bg-emerald-50"
-                          : state === "wrong"
-                            ? "border-rose-500 bg-rose-50"
-                            : state === "muted"
-                              ? "border-line/60 bg-white opacity-60"
-                              : "border-line/60 bg-white hover:bg-muted"
-                      }`}
-                    >
-                      <span
-                        className={`flex size-8 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${
-                          state === "right"
-                            ? "bg-emerald-500 text-white"
-                            : state === "wrong"
-                              ? "bg-rose-500 text-white"
-                              : "bg-muted text-subtle"
-                        }`}
-                      >
-                        {OPTION_LETTERS[i] ?? "•"}
-                      </span>
-                      <span className="min-w-0 flex-1 text-lg font-medium">{triple(option)}</span>
-                      {state === "right" && <CircleCheck size={20} className="shrink-0 text-emerald-600" />}
-                      {state === "wrong" && <CircleX size={20} className="shrink-0 text-rose-600" />}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+              {/* картинка; alt пустой намеренно — подпись выдала бы ответ */}
+              <Card padding="none" className="mt-5 overflow-hidden rounded-xl">
+                <div className="relative aspect-[4/3] w-full">
+                  <Image
+                    src={task.verb.imageUrl}
+                    alt=""
+                    fill
+                    priority
+                    sizes="(max-width: 448px) 100vw, 448px"
+                    unoptimized={isPrecompressedImage(task.verb.imageUrl)}
+                    className="object-contain p-3"
+                  />
+                </div>
+              </Card>
+              {!answered && (
+                <p className="t-body-sm mt-3 px-1 text-center text-fg-muted">{settings.hint}</p>
+              )}
 
-            {answered ? (
-              /* разбор */
-              <div
-                role="status"
-                className={`mt-4 rounded-3xl border p-5 ${
-                  isCorrect ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"
-                }`}
-              >
-                <p
-                  className={`flex items-center gap-2 font-semibold ${
-                    isCorrect ? "text-emerald-700" : "text-rose-700"
-                  }`}
-                >
-                  {isCorrect ? <CircleCheck size={20} /> : <CircleX size={20} />}
-                  {isCorrect ? labels.correct : labels.wrong}
-                </p>
-                <p className="mt-2.5 text-sm">
-                  {!isCorrect && <span className="text-subtle">{labels.correctAnswer}: </span>}
-                  <span className="font-semibold text-emerald-700">{triple(task.verb)}</span>
-                  {task.verb.translation && (
-                    <span className="text-subtle"> · {task.verb.translation}</span>
-                  )}
-                </p>
-
-                <button
-                  ref={nextRef}
-                  type="button"
-                  onClick={onNext}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-                >
-                  {labels.next}
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            ) : (
-              /* шаги «как работает тренажёр» из settings — только до ответа */
-              <ul className="mt-6 flex flex-col gap-3">
-                {settings.steps.map((step, i) => {
-                  const StepIcon = stepIcon(step.icon);
+              {/* варианты */}
+              <ul className="mt-4 flex flex-col gap-3">
+                {task.options.map((option, i) => {
+                  const isPicked = option.id === picked;
+                  // После ответа подсвечиваем верный всегда, а выбранный неверный — красным.
+                  const state: ChoiceState = !answered
+                    ? "idle"
+                    : option.id === task.verb.id
+                      ? "right"
+                      : isPicked
+                        ? "wrong"
+                        : "muted";
                   return (
-                    <li
-                      key={step.position}
-                      className="flex items-center gap-3.5 rounded-3xl border border-line/60 bg-white p-4"
-                    >
-                      <span
-                        className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${stepChips[i % stepChips.length]}`}
+                    <li key={option.id}>
+                      <ChoiceOption
+                        letter={OPTION_LETTERS[i] ?? "•"}
+                        state={state}
+                        onClick={() => onPick(option)}
+                        disabled={answered}
+                        pressed={isPicked}
                       >
-                        <StepIcon size={22} />
-                      </span>
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-subtle">
-                        {step.position}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold">{step.name}</span>
-                        <span className="block text-xs text-subtle">{step.description}</span>
-                      </span>
+                        {triple(option)}
+                      </ChoiceOption>
                     </li>
                   );
                 })}
               </ul>
-            )}
-          </>
-        )
-      )}
-    </div>
+
+              {/* шаги «как работает тренажёр» из settings — только до ответа */}
+              {!answered && (
+                <TrainerSteps
+                  className="mt-8"
+                  title={labels.howItWorks}
+                  steps={settings.steps.map((step) => ({
+                    ...step,
+                    icon: stepIcon(step.icon),
+                  }))}
+                />
+              )}
+            </>
+          )
+        )}
+      </div>
+
+      {/* разбор — лист снизу */}
+      <AnswerSheet
+        result={task && answered ? (isCorrect ? "correct" : "wrong") : null}
+        title={isCorrect ? labels.correct : labels.wrong}
+        answerLabel={labels.correctAnswer}
+        answer={rightForms}
+        explanation={task?.verb.translation || undefined}
+        actionLabel={labels.next}
+        onAction={onNext}
+        actionRef={nextRef}
+      />
+    </>
   );
 }

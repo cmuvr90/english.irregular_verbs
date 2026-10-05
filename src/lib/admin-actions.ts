@@ -125,8 +125,13 @@ export async function deleteVerb(id: string) {
   await assertAdmin();
   // Каскадом уходят связи с группами, предложения и прогресс студентов.
   try {
-    const verb = await prisma.verb.delete({ where: { id }, select: { imageUrl: true } });
-    await deleteBlobQuietly(verb.imageUrl);
+    const verb = await prisma.verb.delete({
+      where: { id },
+      select: { imageUrl: true, ...AUDIO_SELECT },
+    });
+    await Promise.all(
+      [verb.imageUrl, verb.audio1Url, verb.audio2Url, verb.audio3Url].map(deleteBlobQuietly),
+    );
   } catch (error) {
     if (!isNotFound(error)) throw error;
   }
@@ -134,9 +139,12 @@ export async function deleteVerb(id: string) {
   redirect("/admin/verbs");
 }
 
-// ── Картинки глаголов (Vercel Blob) ─────────────────────────────────────────
+// ── Картинки и озвучка глаголов (Vercel Blob) ───────────────────────────────
 
-/** Картинка — иллюстрация на карточке, не фото с телефона: 2 МБ с запасом. */
+/**
+ * Админка сжимает картинку ещё в браузере (src/lib/image-compression.ts) —
+ * приходят десятки килобайт WebP. 2 МБ — предел с большим запасом.
+ */
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 /** Форматы, которые показывают все браузеры; расширение — для имени файла. */
@@ -157,6 +165,52 @@ function blobConfigured() {
 }
 
 /**
+ * Имя файла по инфинитиву — чтобы в хранилище было видно, чей он. Случайный
+ * суффикс при put() даёт замене новый URL, и она не упирается в кеш CDN.
+ */
+function verbSlug(form1: string) {
+  return form1.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "verb";
+}
+
+/**
+ * Имя файлов глагола в хранилище: картинка verbs/images/read.png, озвучка
+ * verbs/audio/read_1.mp3. Имена без случайного суффикса, и замена
+ * перезаписывает файл на месте. Но у двух глаголов с одной первой формой
+ * (lie – lay – lain и lie – lied – lied) файлы затёрли бы друг друга —
+ * таким добавляем вторую форму: lie-lay.png, lie-lay_1.mp3.
+ */
+async function verbFileName(verb: { id: string; form1: string; form2: string }) {
+  const namesake = await prisma.verb.count({
+    where: { form1: verb.form1, id: { not: verb.id } },
+  });
+  return namesake ? `${verbSlug(verb.form1)}-${verbSlug(verb.form2)}` : verbSlug(verb.form1);
+}
+
+/**
+ * Файл перезаписан по тому же адресу — браузеры и CDN помнят старую
+ * версию. В базу кладём URL с ?v=<время загрузки>:
+ * новая версия — новый адрес для всех кешей.
+ */
+function versioned(url: string) {
+  return `${url}?v=${Date.now()}`;
+}
+
+/**
+ * Старый файл удаляем, только если он лежал по другому адресу (другое имя
+ * или расширение, старая схема со случайным суффиксом) — иначе удалили бы
+ * только что записанный.
+ */
+async function deleteReplacedBlob(old: string | null, current: string) {
+  if (old && blobPath(old) !== blobPath(current)) await deleteBlobQuietly(old);
+}
+
+/** URL файла без ?v= и прочего — сам адрес в хранилище. */
+function blobPath(url: string) {
+  const { origin, pathname } = new URL(url);
+  return origin + pathname;
+}
+
+/**
  * Удаляет файл из Blob, не роняя основное действие: запись в базе уже
  * обновлена, а осиротевший файл — копейки места, а не сломанная страница.
  * Чужие URL (не из Blob) не трогаем.
@@ -165,7 +219,7 @@ async function deleteBlobQuietly(url: string | null) {
   if (!url || !blobConfigured()) return;
   try {
     if (!new URL(url).hostname.endsWith(".public.blob.vercel-storage.com")) return;
-    await del(url);
+    await del(blobPath(url));
   } catch (error) {
     console.error("deleteBlob failed:", error);
   }
@@ -194,21 +248,19 @@ export async function uploadVerbImage(
 
   const verb = await prisma.verb.findUnique({
     where: { id: verbId },
-    select: { form1: true, imageUrl: true },
+    select: { id: true, form1: true, form2: true, imageUrl: true },
   });
   if (!verb) return { error: "Глагол удалён — обновите страницу" };
 
-  // Имя по инфинитиву — чтобы в хранилище было видно, чья картинка;
-  // случайный суффикс — чтобы замена давала новый URL и не упиралась в кеш CDN.
-  const slug = verb.form1.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "verb";
   let url: string;
   try {
-    const blob = await put(`verbs/${slug}.${extension}`, file, {
+    const blob = await put(`verbs/images/${await verbFileName(verb)}.${extension}`, file, {
       access: "public",
-      addRandomSuffix: true,
+      addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: file.type,
     });
-    url = blob.url;
+    url = versioned(blob.url);
   } catch (error) {
     console.error("uploadVerbImage failed:", error);
     return { error: "Не удалось загрузить картинку в хранилище — попробуйте ещё раз" };
@@ -217,14 +269,14 @@ export async function uploadVerbImage(
   try {
     await prisma.verb.update({ where: { id: verbId }, data: { imageUrl: url } });
   } catch (error) {
-    // Запись не обновилась — новый файл никому не нужен.
+    // Глагол удалили, пока шла загрузка, — новый файл никому не нужен.
     await deleteBlobQuietly(url);
     const known = knownError(error, { P2025: "Глагол удалён — обновите страницу" });
     if (known) return known;
     throw error;
   }
 
-  await deleteBlobQuietly(verb.imageUrl);
+  await deleteReplacedBlob(verb.imageUrl, url);
   revalidateAll();
   return { saved: true };
 }
@@ -235,6 +287,110 @@ export async function removeVerbImage(verbId: string) {
   if (!verb?.imageUrl) return;
   await prisma.verb.update({ where: { id: verbId }, data: { imageUrl: null } });
   await deleteBlobQuietly(verb.imageUrl);
+  revalidateAll();
+}
+
+/**
+ * Озвучку админка сжимает ещё в браузере (src/lib/audio-recording.ts): одна
+ * форма — несколько килобайт MP3. Предел с большим запасом и при этом такой,
+ * чтобы три файла разом уложились в bodySizeLimit server action.
+ */
+const MAX_AUDIO_BYTES = 1024 * 1024;
+
+/** Номер формы → колонка с её озвучкой. */
+const AUDIO_FIELDS = { 1: "audio1Url", 2: "audio2Url", 3: "audio3Url" } as const;
+export type FormNumber = keyof typeof AUDIO_FIELDS;
+const VERB_FORMS = [1, 2, 3] as const;
+
+const AUDIO_SELECT = { audio1Url: true, audio2Url: true, audio3Url: true } as const;
+
+/**
+ * Озвучка глагола — по файлу на форму: в форме админки поля audio_1..audio_3,
+ * каждое необязательно. Пришедшие файлы заменяют свои формы, остальные
+ * не трогаем.
+ *
+ * В хранилище файл называется по инфинитиву и номеру формы — read_1.mp3
+ * (см. verbFileName и versioned).
+ */
+export async function uploadVerbAudio(
+  verbId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await assertAdmin();
+
+  if (!blobConfigured()) {
+    return {
+      error:
+        "Хранилище не подключено: нет BLOB_READ_WRITE_TOKEN. " +
+        "Подключите Vercel Blob в Storage и скопируйте токен из настроек хранилища в .env.local",
+    };
+  }
+
+  const files: { form: FormNumber; file: File }[] = [];
+  for (const form of VERB_FORMS) {
+    const file = formData.get(`audio_${form}`);
+    if (!(file instanceof File) || file.size === 0) continue;
+    if (file.type !== "audio/mpeg") return { error: `Форма ${form}: ожидается MP3` };
+    if (file.size > MAX_AUDIO_BYTES) return { error: `Форма ${form}: файл больше 1 МБ` };
+    files.push({ form, file });
+  }
+  if (files.length === 0) return { error: "Выберите хотя бы один аудиофайл" };
+
+  const verb = await prisma.verb.findUnique({
+    where: { id: verbId },
+    select: { id: true, form1: true, form2: true, ...AUDIO_SELECT },
+  });
+  if (!verb) return { error: "Глагол удалён — обновите страницу" };
+
+  const name = await verbFileName(verb);
+  let uploaded: { form: FormNumber; url: string }[];
+  try {
+    uploaded = await Promise.all(
+      files.map(async ({ form, file }) => {
+        const blob = await put(`verbs/audio/${name}_${form}.mp3`, file, {
+          access: "public",
+          addRandomSuffix: false,
+          allowOverwrite: true,
+          contentType: "audio/mpeg",
+        });
+        return { form, url: versioned(blob.url) };
+      }),
+    );
+  } catch (error) {
+    // Часть файлов могла успеть перезаписаться — в базе останутся старые ?v=,
+    // но по тому же адресу уже новый звук; повторная загрузка всё выровняет.
+    console.error("uploadVerbAudio failed:", error);
+    return { error: "Не удалось загрузить аудио в хранилище — попробуйте ещё раз" };
+  }
+
+  const data = Object.fromEntries(uploaded.map(({ form, url }) => [AUDIO_FIELDS[form], url]));
+  try {
+    await prisma.verb.update({ where: { id: verbId }, data });
+  } catch (error) {
+    // Глагол удалили, пока шла загрузка, — новые файлы никому не нужны.
+    await Promise.all(uploaded.map(({ url }) => deleteBlobQuietly(url)));
+    const known = knownError(error, { P2025: "Глагол удалён — обновите страницу" });
+    if (known) return known;
+    throw error;
+  }
+
+  await Promise.all(
+    uploaded.map(({ form, url }) => deleteReplacedBlob(verb[AUDIO_FIELDS[form]], url)),
+  );
+  revalidateAll();
+  return { saved: true };
+}
+
+export async function removeVerbAudio(verbId: string, form: FormNumber) {
+  await assertAdmin();
+  const field = AUDIO_FIELDS[form];
+  if (!field) throw new Error("Bad form");
+  const verb = await prisma.verb.findUnique({ where: { id: verbId }, select: AUDIO_SELECT });
+  const url = verb?.[field];
+  if (!url) return;
+  await prisma.verb.update({ where: { id: verbId }, data: { [field]: null } });
+  await deleteBlobQuietly(url);
   revalidateAll();
 }
 

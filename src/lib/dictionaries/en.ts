@@ -33,6 +33,11 @@ const remaining: PluralForms = {
   other: "{count} more verbs to go",
 };
 
+// Подписи под числами статистики дашборда — без {count}: число рисуется отдельно.
+const statVerbs: PluralForms = { one: "verb learned", other: "verbs learned" };
+const statDays: PluralForms = { other: "day streak" };
+const statSessions: PluralForms = { one: "answer given", other: "answers given" };
+
 const verbCount: PluralForms = {
   one: "{count} verb",
   other: "{count} verbs",
@@ -88,19 +93,32 @@ const en = {
   dashboard: {
     greeting: "Hi, {name}!",
     greetingNote: "Great work! Keep it up.",
-    statVerbs: "verbs learned",
-    statDays: "day streak",
-    statSessions: "sessions done",
+    greetingNoteNew: "Let's learn your first irregular verbs today.",
+    statVerbs,
+    statDays,
+    statSessions,
     statLevel: "Level",
-    statLevelName: "Intermediate",
+    levels: {
+      A1: "Beginner",
+      A2: "Elementary",
+      B1: "Intermediate",
+      B2: "Upper-Intermediate",
+      C1: "Advanced",
+    },
     continueTitle: "Continue learning",
     continueSubtitle: "Current trainer",
-    trainerName: "Three verb forms",
-    trainerKind: "Flashcards",
+    continueProgress: "{learned} of {total} learned",
+    startTitle: "Start learning",
+    startSubtitle: "Begin with the first trainer",
+    startAction: "Start",
     continueAction: "Continue",
     todayTitle: "Today",
     todayGoal: "Daily goal",
     changeGoal: "Change goal",
+    goalDone: "Daily goal reached! 🎉",
+    streakKeep: "Practice today to keep your streak going.",
+    streakStart: "Answer a few cards to start a streak.",
+    streakDoneToday: "Today's done — see you tomorrow!",
     verbs: "verbs",
     remaining,
     quickAccess: "Quick access",

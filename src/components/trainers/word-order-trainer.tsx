@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CircleCheck, CircleX, Flame, RotateCw, Undo2 } from "lucide-react";
+import * as m from "motion/react-m";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -8,9 +8,23 @@ import type { FlashcardProgress } from "@/components/trainers/flashcards-trainer
 import { interpolate } from "@/lib/locales";
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
 import { buildDeck, mulberry32, REPEAT_AFTER, shuffle } from "@/lib/trainer-deck";
-import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
 import { sameOrder, tokenize } from "@/lib/word-order";
+import { cn } from "@/ui/cn";
+import { AnswerSheet } from "@/ui/composites/answer-sheet";
+import { EmptyState } from "@/ui/composites/empty-state";
+import { SessionProgress } from "@/ui/composites/session-progress";
+import { SessionSummary } from "@/ui/composites/session-summary";
+import { TopBar } from "@/ui/composites/top-bar";
+import { TrainerSteps } from "@/ui/composites/trainer-steps";
+import { IconReview, IconStreak, IconUndo } from "@/ui/icons";
+import { spring } from "@/ui/motion/presets";
+import { Badge } from "@/ui/primitives/badge";
+import { Button } from "@/ui/primitives/button";
+import { buttonClass } from "@/ui/primitives/button-styles";
+import { Card } from "@/ui/primitives/card";
+import { IconButton } from "@/ui/primitives/icon-button";
+import { stepIcon } from "@/ui/trainer-icons";
 
 /**
  * Тренажёр «Расставь слова по порядку» (word-order): студент видит перевод
@@ -66,12 +80,6 @@ type Props = {
 
 /** Задание: предложение, его слова по порядку и они же вперемешку (индексы). */
 type Task = { item: OrderSentence; words: string[]; shuffled: number[] };
-
-const stepChips = [
-  "bg-violet-100 text-violet-600",
-  "bg-blue-100 text-blue-600",
-  "bg-emerald-100 text-emerald-600",
-];
 
 /**
  * Перемешивает так, чтобы порядок не совпал с ответом: иначе задание решено
@@ -222,238 +230,203 @@ export function WordOrderTrainer({
   };
 
   return (
-    <div className="mx-auto w-full max-w-md px-5 pt-6 pb-28">
-      {/* шапка: назад, название, огонёк выученных */}
-      <div className="flex items-center gap-3">
-        <Link
-          href={backHref}
-          aria-label={labels.back}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line/60 bg-white text-foreground shadow-sm transition-colors hover:bg-muted"
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-bold tracking-tight">{title}</h1>
-          <p className="text-sm text-subtle">{labels.howItWorks}</p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/60 bg-white py-2 pr-3.5 pl-3 shadow-sm">
-          <Flame size={18} className="text-orange-500" />
-          <span className="font-semibold text-blue-600">{learnedCount}</span>
-        </span>
-      </div>
+    <>
+      <TopBar
+        title={title}
+        subtitle={labels.howItWorks}
+        back={{ href: backHref, label: labels.back }}
+        actions={
+          <Badge tone="v2" icon={IconStreak} className="h-9 px-3.5 text-sm">
+            {learnedCount}
+          </Badge>
+        }
+      />
 
-      {deck.length === 0 ? (
-        <p className="mt-10 rounded-3xl border border-line/60 bg-white p-6 text-center text-subtle">
-          {labels.empty}
-        </p>
-      ) : finished ? (
-        /* экран итогов */
-        <div className="mt-8 flex flex-col items-center rounded-3xl border border-line/60 bg-white p-8 text-center">
-          <CircleCheck size={56} className="text-emerald-500" />
-          <h2 className="mt-4 text-2xl font-bold">{labels.finishTitle}</h2>
-          <p className="mt-1 text-subtle">
-            {interpolate(labels.scoreText, {
+      {/* pt-24 — место под шапку; снизу — под таб-бар или лист разбора */}
+      <div className={`mx-auto w-full max-w-md px-4 pt-24 ${answered ? "pb-96" : "pb-32"}`}>
+        {deck.length === 0 ? (
+          <EmptyState title={labels.empty} className="mt-6" />
+        ) : finished ? (
+          <SessionSummary
+            className="mt-4"
+            title={labels.finishTitle}
+            text={interpolate(labels.scoreText, {
               correct: sessionCorrect,
               total: sessionCorrect + sessionWrong,
             })}
-          </p>
+            illustration={{ src: "/images/app/mascot-celebrate.webp", alt: "" }}
+            stats={[
+              {
+                value: sessionCorrect,
+                label: labels.correctCount,
+                tone: "success",
+              },
+              { value: sessionWrong, label: labels.mistakes, tone: "v2" },
+            ]}
+            actions={
+              <>
+                <Button size="lg" block icon={IconReview} onClick={restart}>
+                  {labels.again}
+                </Button>
+                <Link
+                  href={backHref}
+                  className={buttonClass({
+                    variant: "secondary",
+                    size: "lg",
+                    block: true,
+                  })}
+                >
+                  {labels.back}
+                </Link>
+              </>
+            }
+          />
+        ) : (
+          task && (
+            <>
+              <SessionProgress current={index + 1} total={deck.length} label={title} tone="ink" />
 
-          <dl className="mt-6 grid w-full grid-cols-2 divide-x divide-line/60">
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-emerald-600">{sessionCorrect}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.correctCount}</dt>
-            </div>
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-rose-500">{sessionWrong}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.mistakes}</dt>
-            </div>
-          </dl>
+              <Card padding="lg" className="mt-5">
+                {/* перевод — смысл, который нужно собрать */}
+                {task.item.translation && (
+                  <p className="t-heading text-fg-strong">{task.item.translation}</p>
+                )}
 
-          <button
-            type="button"
-            onClick={restart}
-            className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            <RotateCw size={18} />
-            {labels.again}
-          </button>
-          <Link
-            href={backHref}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-line/60 bg-white py-3.5 font-medium transition-colors hover:bg-muted"
-          >
-            {labels.back}
-          </Link>
-        </div>
-      ) : (
-        task && (
-          <>
-            {/* прогресс сессии */}
-            <div className="mt-5 flex items-center gap-3">
-              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line/60">
+                {/* собранный ответ — «утопленная» тетрадная строка; нажатие возвращает слово обратно */}
                 <div
-                  className="h-full rounded-full bg-blue-600 transition-[width] duration-300"
-                  style={{ width: `${((index + 1) / deck.length) * 100}%` }}
-                />
-              </div>
-              <span className="shrink-0 text-sm font-semibold">
-                {index + 1}
-                <span className="font-normal text-subtle"> / {deck.length}</span>
-              </span>
-            </div>
-
-            <div className="mt-5 rounded-3xl border border-line/60 bg-white p-6 shadow-sm">
-              {/* перевод — смысл, который нужно собрать */}
-              {task.item.translation && (
-                <p className="text-lg leading-snug font-semibold">{task.item.translation}</p>
-              )}
-
-              {/* собранный ответ: нажатие возвращает слово обратно */}
-              <div
-                aria-label={labels.yourAnswer}
-                className={`mt-4 flex min-h-16 flex-wrap content-start gap-2 rounded-2xl border-2 border-dashed p-3 ${
-                  result === true
-                    ? "border-emerald-400 bg-emerald-50"
-                    : result === false
-                      ? "border-rose-400 bg-rose-50"
-                      : "border-line"
-                }`}
-              >
-                {picked.map((wordIndex, position) => (
-                  <button
-                    key={wordIndex}
-                    type="button"
-                    disabled={answered}
-                    onClick={() => setPicked((prev) => prev.filter((i) => i !== wordIndex))}
-                    aria-label={`${position + 1}. ${task.words[wordIndex]}`}
-                    className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-lg font-medium text-blue-800 transition-colors hover:bg-blue-100 disabled:hover:bg-blue-50"
-                  >
-                    {task.words[wordIndex]}
-                  </button>
-                ))}
-              </div>
-
-              {/* слова, которые ещё не использованы */}
-              {!answered && (
-                <>
-                  <div className="mt-4 flex min-h-12 flex-wrap justify-center gap-2">
-                    {task.shuffled.map((wordIndex) => {
-                      const used = picked.includes(wordIndex);
-                      return (
-                        <button
-                          key={wordIndex}
-                          type="button"
-                          disabled={used}
-                          aria-hidden={used}
-                          onClick={() => setPicked((prev) => [...prev, wordIndex])}
-                          className={`rounded-xl border px-3 py-1.5 text-lg font-medium transition-colors ${
-                            used
-                              ? "invisible"
-                              : "border-line bg-white shadow-sm hover:bg-muted"
-                          }`}
-                        >
-                          {task.words[wordIndex]}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <p className="mt-4 text-center text-sm text-subtle">{settings.hint}</p>
-
-                  <div className="mt-5 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={onCheck}
-                      disabled={!complete}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {labels.check}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPicked([])}
-                      disabled={picked.length === 0}
-                      aria-label={labels.reset}
-                      title={labels.reset}
-                      className="flex size-[3.25rem] shrink-0 items-center justify-center rounded-2xl border border-line/60 bg-white transition-colors hover:bg-muted disabled:opacity-50"
-                    >
-                      <Undo2 size={18} />
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {answered ? (
-              /* разбор */
-              <div
-                role="status"
-                className={`mt-4 rounded-3xl border p-5 ${
-                  result ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"
-                }`}
-              >
-                <p
-                  className={`flex items-center gap-2 font-semibold ${
-                    result ? "text-emerald-700" : "text-rose-700"
-                  }`}
+                  aria-label={labels.yourAnswer}
+                  className={cn(
+                    "mt-4 flex min-h-20 flex-wrap content-start gap-2 rounded-xl p-3 transition-colors duration-200",
+                    result === true
+                      ? "bg-leaf-50 ring-2 ring-leaf-300"
+                      : result === false
+                        ? "bg-berry-50 ring-2 ring-berry-300"
+                        : "bg-surface-sunken inset-shadow-sunken",
+                  )}
                 >
-                  {result ? <CircleCheck size={20} /> : <CircleX size={20} />}
-                  {result ? labels.correct : labels.wrong}
-                </p>
-
-                {!result && (
-                  <p className="mt-2.5 text-sm">
-                    <span className="text-subtle">{labels.correctAnswer}: </span>
-                    <span className="font-semibold text-emerald-700">{task.item.sentence}</span>
-                  </p>
-                )}
-
-                {task.item.explanation && (
-                  <p className="mt-2.5 text-sm">
-                    <span className="text-subtle">{labels.why}: </span>
-                    {task.item.explanation}
-                  </p>
-                )}
-
-                <button
-                  ref={nextRef}
-                  type="button"
-                  onClick={onNext}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-                >
-                  {labels.next}
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            ) : (
-              /* шаги «как работает тренажёр» из settings — только до ответа */
-              <ul className="mt-6 flex flex-col gap-3">
-                {settings.steps.map((step, i) => {
-                  const StepIcon = stepIcon(step.icon);
-                  return (
-                    <li
-                      key={step.position}
-                      className="flex items-center gap-3.5 rounded-3xl border border-line/60 bg-white p-4"
+                  {picked.map((wordIndex, position) => (
+                    <m.button
+                      // layoutId общий с плиткой в наборе: слово «перелетает» между зонами.
+                      // Номер прохода и задания в ключе — чтобы не летело из прошлого задания.
+                      layoutId={`${round}:${index}:${wordIndex}`}
+                      transition={spring.snappy}
+                      key={wordIndex}
+                      type="button"
+                      disabled={answered}
+                      onClick={() => setPicked((prev) => prev.filter((i) => i !== wordIndex))}
+                      aria-label={`${position + 1}. ${task.words[wordIndex]}`}
+                      className={cn(
+                        "focus-ring t-verb cursor-pointer rounded-md px-3.5 py-2 text-lg ring-1 transition-[background-color,box-shadow,translate] duration-150",
+                        result === true
+                          ? "bg-surface text-leaf-700 ring-leaf-300"
+                          : result === false
+                            ? "bg-surface text-berry-700 ring-berry-300"
+                            : "bg-surface text-fg-strong shadow-press-paper ring-hairline-strong active:translate-y-1 active:shadow-none",
+                      )}
                     >
-                      <span
-                        className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${stepChips[i % stepChips.length]}`}
+                      {task.words[wordIndex]}
+                    </m.button>
+                  ))}
+                </div>
+
+                {/* слова, которые ещё не использованы */}
+                {!answered && (
+                  <>
+                    <div className="mt-5 flex min-h-12 flex-wrap justify-center gap-2.5">
+                      {task.shuffled.map((wordIndex) => {
+                        const used = picked.includes(wordIndex);
+                        // Использованное слово оставляет невидимую «тень» той же ширины:
+                        // остальные плитки не прыгают, пока студент собирает ответ.
+                        return used ? (
+                          <span
+                            key={wordIndex}
+                            aria-hidden
+                            className="t-verb invisible rounded-md px-3.5 py-2 text-lg ring-1 ring-transparent"
+                          >
+                            {task.words[wordIndex]}
+                          </span>
+                        ) : (
+                          <m.button
+                            layoutId={`${round}:${index}:${wordIndex}`}
+                            transition={spring.snappy}
+                            key={wordIndex}
+                            type="button"
+                            onClick={() => setPicked((prev) => [...prev, wordIndex])}
+                            className="focus-ring t-verb cursor-pointer rounded-md bg-surface px-3.5 py-2 text-lg text-fg-strong shadow-press-paper ring-1 ring-hairline-strong transition-[background-color,box-shadow,translate] duration-150 hover:bg-surface-sunken/50 active:translate-y-1 active:shadow-none"
+                          >
+                            {task.words[wordIndex]}
+                          </m.button>
+                        );
+                      })}
+                    </div>
+
+                    <p className="t-body-sm mt-5 text-center text-fg-muted">{settings.hint}</p>
+
+                    <div className="mt-5 flex items-center gap-3">
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        onClick={onCheck}
+                        disabled={!complete}
+                        className="flex-1"
                       >
-                        <StepIcon size={22} />
-                      </span>
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-subtle">
-                        {step.position}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold">{step.name}</span>
-                        <span className="block text-xs text-subtle">{step.description}</span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </>
-        )
-      )}
-    </div>
+                        {labels.check}
+                      </Button>
+                      <IconButton
+                        icon={IconUndo}
+                        label={labels.reset}
+                        variant="paper"
+                        size="lg"
+                        onClick={() => setPicked([])}
+                        disabled={picked.length === 0}
+                      />
+                    </div>
+                  </>
+                )}
+              </Card>
+
+              {/* шаги «как работает тренажёр» из settings — только до ответа,
+                  чтобы не отвлекать от разбора */}
+              {!answered && (
+                <TrainerSteps
+                  className="mt-8"
+                  title={labels.howItWorks}
+                  steps={settings.steps.map((step) => ({
+                    ...step,
+                    icon: stepIcon(step.icon),
+                  }))}
+                />
+              )}
+            </>
+          )
+        )}
+      </div>
+
+      {/* разбор — лист снизу */}
+      <AnswerSheet
+        actionRef={nextRef}
+        result={!finished && answered ? (result ? "correct" : "wrong") : null}
+        title={result ? labels.correct : labels.wrong}
+        answerLabel={labels.correctAnswer}
+        answer={task && <span className="t-verb text-xl text-leaf-700">{task.item.sentence}</span>}
+        details={[
+          ...(result === false && answerWords.length > 0
+            ? [
+                {
+                  label: labels.yourAnswer,
+                  text: (
+                    <span className="text-berry-700 line-through decoration-2">
+                      {answerWords.join(" ")}
+                    </span>
+                  ),
+                },
+              ]
+            : []),
+          ...(task?.item.explanation ? [{ label: labels.why, text: task.item.explanation }] : []),
+        ]}
+        actionLabel={labels.next}
+        onAction={onNext}
+      />
+    </>
   );
 }

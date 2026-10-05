@@ -13,6 +13,8 @@ import {
   type FormNumber,
 } from "@/lib/verb-forms";
 import { getSession } from "@/lib/session";
+import { dayIn } from "@/lib/time-zone";
+import { getTimeZone } from "@/lib/time-zone-server";
 
 /**
  * Server actions тренажёров: фиксируют прогресс студента в
@@ -96,31 +98,53 @@ export async function answerCard(
           learned_at = COALESCE(trainer_verb_progress.learned_at, now()),
           updated_at = now()
       `;
-      return;
+    } else {
+      await prisma.trainerVerbProgress.upsert({
+        where: {
+          userId_verbId_trainerId: { userId: session.user.id, verbId, trainerId },
+        },
+        create: {
+          userId: session.user.id,
+          verbId,
+          trainerId,
+          status: "repeat",
+          countRepeat: 1,
+          lastViewAt: new Date(),
+        },
+        update: {
+          status: "repeat",
+          countRepeat: { increment: 1 },
+        },
+      });
     }
-
-    await prisma.trainerVerbProgress.upsert({
-      where: {
-        userId_verbId_trainerId: { userId: session.user.id, verbId, trainerId },
-      },
-      create: {
-        userId: session.user.id,
-        verbId,
-        trainerId,
-        status: "repeat",
-        countRepeat: 1,
-        lastViewAt: new Date(),
-      },
-      update: {
-        status: "repeat",
-        countRepeat: { increment: 1 },
-      },
-    });
+    // Активность — только после успешной записи прогресса: вызов с битым
+    // id глагола (экшен — публичный эндпоинт) не должен накручивать серию.
+    await recordActivity(session.user.id, answer === "know");
   } catch (error) {
     console.error("answerCard failed:", error);
   }
 
   await logging;
+}
+
+/**
+ * Ответ засчитывается в активность дня — по календарю студента. Из этих
+ * строк дашборд считает серию дней. Отдельный try: сбой статистики не
+ * должен помешать записи прогресса.
+ */
+async function recordActivity(userId: string, correct: boolean) {
+  try {
+    const day = dayIn(await getTimeZone());
+    await prisma.$executeRaw`
+      INSERT INTO user_activity_days (user_id, day, answers, correct)
+      VALUES (${userId}, ${day}::date, 1, ${correct ? 1 : 0})
+      ON CONFLICT (user_id, day) DO UPDATE SET
+        answers = user_activity_days.answers + 1,
+        correct = user_activity_days.correct + EXCLUDED.correct
+    `;
+  } catch (error) {
+    console.error("recordActivity failed:", error);
+  }
 }
 
 /** Повтор той же ошибки чаще этого — двойной тап или скрипт, в журнал не пишем. */

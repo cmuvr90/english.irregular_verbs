@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import { Share, X } from "lucide-react";
 import type { Dictionary } from "@/lib/dictionaries/en";
+import { IconClose, IconRocket } from "@/ui/icons";
+import { Button } from "@/ui/primitives/button";
+import { Card } from "@/ui/primitives/card";
+import { IconButton } from "@/ui/primitives/icon-button";
+import { IconTile } from "@/ui/primitives/icon-tile";
 
 /**
  * Плашка «Установить приложение».
@@ -68,42 +72,29 @@ export function InstallPrompt({ dict }: { dict: Dictionary["install"] }) {
     // В потоке страницы, а не fixed: плавающая плашка перекрывала ссылки
     // внизу экрана на мобильных.
     <div className="w-full pt-4 pb-[max(0px,env(safe-area-inset-bottom))]">
-      <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl border border-line bg-white p-4 shadow-lg">
+      <Card variant="glass" padding="sm" className="mx-auto flex max-w-md items-center gap-3">
+        <IconTile icon={IconRocket} tone="ink" variant="solid" size="md" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium">{dict.title}</p>
-          {installEvent ? (
-            <p className="mt-0.5 text-xs text-subtle">{dict.subtitle}</p>
-          ) : (
-            <p className="mt-0.5 text-xs text-subtle">
-              <Share size={14} className="inline-block align-[-2px]" /> {dict.iosHint}
-            </p>
-          )}
+          <p className="t-label font-semibold text-fg-strong">{dict.title}</p>
+          <p className="t-caption mt-0.5 text-fg-muted">{installEvent ? dict.subtitle : dict.iosHint}</p>
         </div>
 
         {installEvent && (
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={async () => {
               await installEvent.prompt();
               const { outcome } = await installEvent.userChoice;
               if (outcome === "dismissed") localStorage.setItem(DISMISSED_KEY, "1");
               setInstallEvent(null);
             }}
-            className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
           >
             {dict.action}
-          </button>
+          </Button>
         )}
 
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label={dict.dismiss}
-          className="shrink-0 rounded-lg p-1.5 text-subtle transition-colors hover:bg-muted"
-        >
-          <X size={16} />
-        </button>
-      </div>
+        <IconButton icon={IconClose} label={dict.dismiss} variant="ghost" size="sm" onClick={dismiss} />
+      </Card>
     </div>
   );
 }

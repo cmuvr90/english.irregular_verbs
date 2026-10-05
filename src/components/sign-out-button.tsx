@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { LogOut } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
+import { IconSignOut } from "@/ui/icons";
+import { IconButton } from "@/ui/primitives/icon-button";
 
 /** Круглая иконка-кнопка выхода для шапки кабинета. */
 export function SignOutButton({ label }: { label: string }) {
@@ -12,20 +13,17 @@ export function SignOutButton({ label }: { label: string }) {
   const [pending, setPending] = useState(false);
 
   return (
-    <button
-      type="button"
+    <IconButton
+      icon={IconSignOut}
+      label={label}
       disabled={pending}
-      aria-label={label}
-      title={label}
       onClick={async () => {
         setPending(true);
         await signOut();
         router.push("/");
         router.refresh();
       }}
-      className="flex size-11 items-center justify-center rounded-full border border-line/60 bg-white text-subtle shadow-sm transition-colors hover:text-red-500 disabled:opacity-50"
-    >
-      <LogOut size={20} />
-    </button>
+      className="hover:text-berry-600 disabled:opacity-50"
+    />
   );
 }

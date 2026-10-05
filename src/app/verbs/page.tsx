@@ -1,35 +1,29 @@
-import { ChevronRight, List } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { getDictionary } from "@/lib/dictionaries";
 import { getLocale } from "@/lib/i18n";
 import { pickLocalized, plural } from "@/lib/locales";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { ListLink } from "@/ui/composites/list-link";
+import { TopBar } from "@/ui/composites/top-bar";
+import { IconVerbs } from "@/ui/icons";
+import type { Tone } from "@/ui/tones";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary(await getLocale());
   return { title: dict.meta.verbGroups };
 }
 
-// Палитра чипов повторяет карточки быстрого доступа кабинета.
-const chips = [
-  "bg-blue-100 text-blue-600",
-  "bg-emerald-100 text-emerald-600",
-  "bg-violet-100 text-violet-600",
-  "bg-orange-100 text-orange-500",
-  "bg-rose-100 text-rose-500",
-  "bg-cyan-100 text-cyan-600",
-];
+// Тоны дизайн-системы для плашек групп.
+const tones: Tone[] = ["v1", "v2", "v3", "ink", "success", "gold"];
 
-/** Цвет чипа привязан к key группы, а не к позиции — не «переезжает» при смене порядка. */
-function chipFor(key: string) {
+/** Тон привязан к key группы, а не к позиции — не «переезжает» при смене порядка. */
+function toneFor(key: string) {
   let hash = 0;
   for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) | 0;
-  return chips[Math.abs(hash) % chips.length];
+  return tones[Math.abs(hash) % tones.length];
 }
 
 export default async function VerbGroupsPage() {
@@ -45,38 +39,25 @@ export default async function VerbGroupsPage() {
   });
 
   return (
-    <main className="flex-1 bg-white">
-      <AppHeader
-        backHref="/dashboard"
-        backLabel={t.backToDashboard}
+    <main className="flex-1 bg-canvas">
+      <TopBar
+        back={{ href: "/dashboard", label: t.backToDashboard }}
         title={t.title}
         subtitle={t.subtitle}
       />
 
-      {/* pt-32 освобождает место под фиксированную шапку, pb-28 — под таб-бар */}
-      <div className="mx-auto w-full max-w-md px-5 pt-32 pb-28">
+      {/* pt-24 освобождает место под фиксированную шапку, pb-32 — под таб-бар */}
+      <div className="mx-auto w-full max-w-md px-4 pt-24 pb-32">
         <ul className="flex flex-col gap-3">
           {groups.map((group) => (
             <li key={group.id}>
-              <Link
+              <ListLink
                 href={`/verbs/${group.key}`}
-                className="flex items-center gap-4 rounded-3xl border border-line/60 bg-white p-4 transition-shadow hover:shadow-md"
-              >
-                <span
-                  className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${chipFor(group.key)}`}
-                >
-                  <List size={22} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">
-                    {pickLocalized(group.name, locale)}
-                  </span>
-                  <span className="mt-0.5 block text-sm text-subtle">
-                    {plural(locale, group._count.verbs, t.count)}
-                  </span>
-                </span>
-                <ChevronRight size={18} className="shrink-0 text-subtle" />
-              </Link>
+                icon={IconVerbs}
+                tone={toneFor(group.key)}
+                title={pickLocalized(group.name, locale)}
+                description={plural(locale, group._count.verbs, t.count)}
+              />
             </li>
           ))}
         </ul>

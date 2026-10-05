@@ -1,13 +1,5 @@
 "use client";
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  CircleCheck,
-  CircleX,
-  Flame,
-  RotateCw,
-} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -21,8 +13,20 @@ import {
 } from "@/lib/sentence-options";
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
 import { buildDeck, mulberry32, REPEAT_AFTER, shuffle } from "@/lib/trainer-deck";
-import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
+import { AnswerSheet } from "@/ui/composites/answer-sheet";
+import { type ChoiceState, ChoiceOption } from "@/ui/composites/choice-option";
+import { EmptyState } from "@/ui/composites/empty-state";
+import { SessionProgress } from "@/ui/composites/session-progress";
+import { SessionSummary } from "@/ui/composites/session-summary";
+import { TopBar } from "@/ui/composites/top-bar";
+import { TrainerSteps } from "@/ui/composites/trainer-steps";
+import { IconReview, IconStreak } from "@/ui/icons";
+import { Badge } from "@/ui/primitives/badge";
+import { Button } from "@/ui/primitives/button";
+import { buttonClass } from "@/ui/primitives/button-styles";
+import { Card } from "@/ui/primitives/card";
+import { stepIcon } from "@/ui/trainer-icons";
 
 /**
  * Тренажёр «Выбери форму» (multiple-choice). Показывает предложение с одним
@@ -90,12 +94,6 @@ type Props = {
    */
   seed: number;
 };
-
-const stepChips = [
-  "bg-violet-100 text-violet-600",
-  "bg-blue-100 text-blue-600",
-  "bg-emerald-100 text-emerald-600",
-];
 
 /** Подписи вариантов, как в бумажных тестах: a) b) c). */
 const OPTION_LETTERS = "abcdefgh";
@@ -268,244 +266,158 @@ export function MultipleChoiceTrainer({
   const rightAnswer = question ? correctOptions(question.options)[0]?.text : undefined;
 
   return (
-    <div className="mx-auto w-full max-w-md px-5 pt-6 pb-28">
-      {/* шапка: назад, название, огонёк выученных */}
-      <div className="flex items-center gap-3">
-        <Link
-          href={backHref}
-          aria-label={labels.back}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line/60 bg-white text-foreground shadow-sm transition-colors hover:bg-muted"
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-bold tracking-tight">{title}</h1>
-          <p className="text-sm text-subtle">{labels.howItWorks}</p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/60 bg-white py-2 pr-3.5 pl-3 shadow-sm">
-          <Flame size={18} className="text-orange-500" />
-          <span className="font-semibold text-blue-600">{learnedCount}</span>
-        </span>
-      </div>
+    <>
+      <TopBar
+        title={title}
+        subtitle={labels.howItWorks}
+        back={{ href: backHref, label: labels.back }}
+        actions={
+          <Badge tone="v2" icon={IconStreak} className="h-9 px-3.5 text-sm">
+            {learnedCount}
+          </Badge>
+        }
+      />
 
-      {deck.length === 0 ? (
-        <p className="mt-10 rounded-3xl border border-line/60 bg-white p-6 text-center text-subtle">
-          {labels.empty}
-        </p>
-      ) : finished ? (
-        /* экран итогов */
-        <div className="mt-8 flex flex-col items-center rounded-3xl border border-line/60 bg-white p-8 text-center">
-          <CircleCheck size={56} className="text-emerald-500" />
-          <h2 className="mt-4 text-2xl font-bold">{labels.finishTitle}</h2>
-          <p className="mt-1 text-subtle">
-            {interpolate(labels.scoreText, {
+      {/* pt-24 — место под шапку; снизу — под таб-бар или лист разбора */}
+      <div className={`mx-auto w-full max-w-md px-4 pt-24 ${answered ? "pb-96" : "pb-32"}`}>
+        {deck.length === 0 ? (
+          <EmptyState title={labels.empty} className="mt-6" />
+        ) : finished ? (
+          <SessionSummary
+            className="mt-4"
+            title={labels.finishTitle}
+            text={interpolate(labels.scoreText, {
               correct: sessionCorrect,
               total: sessionCorrect + sessionWrong,
             })}
-          </p>
-
-          <dl className="mt-6 grid w-full grid-cols-2 divide-x divide-line/60">
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-emerald-600">{sessionCorrect}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.correctCount}</dt>
-            </div>
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-orange-500">{sessionWrong}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.mistakes}</dt>
-            </div>
-          </dl>
-
-          <button
-            type="button"
-            onClick={restart}
-            className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            <RotateCw size={18} />
-            {labels.again}
-          </button>
-          <Link
-            href={backHref}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-line/60 bg-white py-3.5 font-medium transition-colors hover:bg-muted"
-          >
-            {labels.back}
-          </Link>
-        </div>
-      ) : (
-        question && (
-          <>
-            {/* прогресс сессии */}
-            <div className="mt-5 flex items-center gap-3">
-              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line/60">
-                <div
-                  className="h-full rounded-full bg-blue-600 transition-[width] duration-300"
-                  style={{ width: `${((index + 1) / deck.length) * 100}%` }}
-                />
-              </div>
-              <span className="shrink-0 text-sm font-semibold">
-                {index + 1}
-                <span className="font-normal text-subtle"> / {deck.length}</span>
-              </span>
-            </div>
-
-            {/* предложение: пропуск до ответа — прочерк, после — выбранное слово */}
-            <div className="mt-5 rounded-3xl border border-line/60 bg-white p-6 shadow-sm">
-              <p className="text-2xl leading-relaxed font-semibold">
-                {splitSentence(question.sentence.text, question.sentence.options).map(
-                  (part, i) =>
-                    part.kind === "text" ? (
-                      <span key={i}>{part.value}</span>
-                    ) : (
-                      <span
-                        key={i}
-                        className={
-                          !answered
-                            ? "mx-0.5 inline-block min-w-24 border-b-2 border-dashed border-line align-bottom"
-                            : isCorrect
-                              ? "mx-0.5 inline-block border-b-2 border-emerald-500 text-emerald-600"
-                              : "mx-0.5 inline-block border-b-2 border-rose-500 text-rose-600"
-                        }
-                      >
-                        {/* до ответа пропуск пустой, но высота строки должна сохраниться */}
-                        {answered ? picked : " "}
-                      </span>
-                    ),
-                )}
-              </p>
-              {!answered && <p className="mt-4 text-sm text-subtle">{settings.hint}</p>}
-            </div>
-
-            {/* варианты */}
-            <ul className="mt-4 flex flex-col gap-2.5">
-              {question.options.map((option, i) => {
-                const isPicked = option.text === picked;
-                // После ответа подсвечиваем верный всегда, а выбранный неверный —
-                // красным: студент должен увидеть и свою ошибку, и правильную форму.
-                const state = !answered
-                  ? "idle"
-                  : option.correct
-                    ? "right"
-                    : isPicked
-                      ? "wrong"
-                      : "muted";
-
-                return (
-                  <li key={option.text}>
-                    <button
-                      type="button"
-                      onClick={() => onPick(option)}
-                      disabled={answered}
-                      aria-pressed={isPicked}
-                      className={`flex w-full items-center gap-3.5 rounded-2xl border p-4 text-left transition-colors ${
-                        state === "right"
-                          ? "border-emerald-500 bg-emerald-50"
-                          : state === "wrong"
-                            ? "border-rose-500 bg-rose-50"
-                            : state === "muted"
-                              ? "border-line/60 bg-white opacity-60"
-                              : "border-line/60 bg-white hover:bg-muted"
-                      }`}
-                    >
-                      <span
-                        className={`flex size-8 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${
-                          state === "right"
-                            ? "bg-emerald-500 text-white"
-                            : state === "wrong"
-                              ? "bg-rose-500 text-white"
-                              : "bg-muted text-subtle"
-                        }`}
-                      >
-                        {OPTION_LETTERS[i] ?? "•"}
-                      </span>
-                      <span className="min-w-0 flex-1 text-lg font-medium">{option.text}</span>
-                      {state === "right" && (
-                        <CircleCheck size={20} className="shrink-0 text-emerald-600" />
-                      )}
-                      {state === "wrong" && (
-                        <CircleX size={20} className="shrink-0 text-rose-600" />
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {answered ? (
-              /* разбор */
-              <div
-                className={`mt-4 rounded-3xl border p-5 ${
-                  isCorrect ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"
-                }`}
-              >
-                <p
-                  className={`flex items-center gap-2 font-semibold ${
-                    isCorrect ? "text-emerald-700" : "text-rose-700"
-                  }`}
+            illustration={{ src: "/images/app/mascot-celebrate.webp", alt: "" }}
+            stats={[
+              {
+                value: sessionCorrect,
+                label: labels.correctCount,
+                tone: "success",
+              },
+              { value: sessionWrong, label: labels.mistakes, tone: "v2" },
+            ]}
+            actions={
+              <>
+                <Button size="lg" block icon={IconReview} onClick={restart}>
+                  {labels.again}
+                </Button>
+                <Link
+                  href={backHref}
+                  className={buttonClass({
+                    variant: "secondary",
+                    size: "lg",
+                    block: true,
+                  })}
                 >
-                  {isCorrect ? <CircleCheck size={20} /> : <CircleX size={20} />}
-                  {isCorrect ? labels.correct : labels.wrong}
+                  {labels.back}
+                </Link>
+              </>
+            }
+          />
+        ) : (
+          question && (
+            <>
+              <SessionProgress current={index + 1} total={deck.length} label={title} tone="v1" />
+
+              {/* предложение на тетрадном листе: пропуск до ответа — прочерк, после — выбранное слово */}
+              <Card variant="notebook" padding="none" className="mt-5 overflow-hidden">
+                <p className="pt-7 pr-5 pb-7 pl-12 text-2xl leading-[1.75rem] font-semibold text-fg-strong [word-spacing:0.05em]">
+                  {splitSentence(question.sentence.text, question.sentence.options).map(
+                    (part, i) =>
+                      part.kind === "text" ? (
+                        <span key={i}>{part.value}</span>
+                      ) : (
+                        <span
+                          key={i}
+                          className={
+                            !answered
+                              ? "mx-0.5 inline-block min-w-24 rounded-xs bg-ink-50 align-bottom ring-1 ring-ink-200 ring-inset"
+                              : isCorrect
+                                ? "t-verb mx-0.5 inline-block rounded-xs bg-leaf-100 px-1.5 text-leaf-700"
+                                : "t-verb mx-0.5 inline-block rounded-xs bg-berry-100 px-1.5 text-berry-700 line-through decoration-2"
+                          }
+                        >
+                          {/* до ответа пропуск пустой, но высота строки должна сохраниться */}
+                          {answered ? picked : "\u00a0"}
+                        </span>
+                      ),
+                  )}
                 </p>
+              </Card>
+              {!answered && <p className="t-body-sm mt-3 px-1 text-fg-muted">{settings.hint}</p>}
 
-                {!isCorrect && rightAnswer && (
-                  <p className="mt-2.5 text-sm">
-                    <span className="text-subtle">{labels.correctAnswer}: </span>
-                    <span className="font-semibold text-emerald-700">{rightAnswer}</span>
-                  </p>
-                )}
+              {/* варианты */}
+              <ul className="mt-4 flex flex-col gap-3">
+                {question.options.map((option, i) => {
+                  const isPicked = option.text === picked;
+                  // После ответа подсвечиваем верный всегда, а выбранный неверный —
+                  // красным: студент должен увидеть и свою ошибку, и правильную форму.
+                  const state: ChoiceState = !answered
+                    ? "idle"
+                    : option.correct
+                      ? "right"
+                      : isPicked
+                        ? "wrong"
+                        : "muted";
 
-                {question.sentence.explanation && (
-                  <p className="mt-2.5 text-sm">
-                    <span className="text-subtle">{labels.why}: </span>
-                    {question.sentence.explanation}
-                  </p>
-                )}
-
-                {question.sentence.translation && (
-                  <p className="mt-2.5 text-sm">
-                    <span className="text-subtle">{labels.sentenceTranslation}: </span>
-                    {question.sentence.translation}
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  onClick={onNext}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-                >
-                  {labels.next}
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            ) : (
-              /* шаги «как работает тренажёр» из settings — только до ответа,
-                 чтобы не отвлекать от разбора */
-              <ul className="mt-6 flex flex-col gap-3">
-                {settings.steps.map((step, i) => {
-                  const StepIcon = stepIcon(step.icon);
                   return (
-                    <li
-                      key={step.position}
-                      className="flex items-center gap-3.5 rounded-3xl border border-line/60 bg-white p-4"
-                    >
-                      <span
-                        className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${stepChips[i % stepChips.length]}`}
+                    <li key={option.text}>
+                      <ChoiceOption
+                        letter={OPTION_LETTERS[i] ?? "•"}
+                        state={state}
+                        onClick={() => onPick(option)}
+                        disabled={answered}
+                        pressed={isPicked}
                       >
-                        <StepIcon size={22} />
-                      </span>
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-subtle">
-                        {step.position}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold">{step.name}</span>
-                        <span className="block text-xs text-subtle">{step.description}</span>
-                      </span>
+                        {option.text}
+                      </ChoiceOption>
                     </li>
                   );
                 })}
               </ul>
-            )}
-          </>
-        )
-      )}
-    </div>
+
+              {/* шаги «как работает тренажёр» из settings — только до ответа,
+                  чтобы не отвлекать от разбора */}
+              {!answered && (
+                <TrainerSteps
+                  className="mt-8"
+                  title={labels.howItWorks}
+                  steps={settings.steps.map((step) => ({
+                    ...step,
+                    icon: stepIcon(step.icon),
+                  }))}
+                />
+              )}
+            </>
+          )
+        )}
+      </div>
+
+      {/* разбор — лист снизу */}
+      <AnswerSheet
+        result={!finished && answered ? (isCorrect ? "correct" : "wrong") : null}
+        title={isCorrect ? labels.correct : labels.wrong}
+        answerLabel={labels.correctAnswer}
+        answer={rightAnswer && <span className="t-verb text-2xl text-leaf-700">{rightAnswer}</span>}
+        details={[
+          ...(question?.sentence.explanation
+            ? [{ label: labels.why, text: question.sentence.explanation }]
+            : []),
+          ...(question?.sentence.translation
+            ? [
+                {
+                  label: labels.sentenceTranslation,
+                  text: question.sentence.translation,
+                },
+              ]
+            : []),
+        ]}
+        actionLabel={labels.next}
+        onAction={onNext}
+      />
+    </>
   );
 }

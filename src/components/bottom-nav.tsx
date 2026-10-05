@@ -1,8 +1,9 @@
 "use client";
 
-import { ChartColumn, Dumbbell, House, User } from "lucide-react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import { type TabItem, TabBar } from "@/ui/composites/tab-bar";
+import { IconHome, IconProfile, IconProgress, IconTrainers } from "@/ui/icons";
 
 export type BottomNavLabels = {
   home: string;
@@ -12,47 +13,27 @@ export type BottomNavLabels = {
 };
 
 /**
- * Нижняя навигация как таб-бар мобильного приложения: присутствует на всех
- * основных экранах, активная вкладка вычисляется по текущему маршруту.
+ * Нижняя навигация приложения: таб-бар дизайн-системы, активная вкладка
+ * вычисляется по текущему маршруту.
  */
 export function BottomNav({ labels }: { labels: BottomNavLabels }) {
   const pathname = usePathname();
 
-  const items = [
-    { icon: <House size={22} />, label: labels.home, href: "/dashboard" },
-    { icon: <Dumbbell size={22} />, label: labels.trainers, href: "/trainers" },
-    { icon: <ChartColumn size={20} />, label: labels.progress, href: "/coming-soon" },
-    { icon: <User size={22} />, label: labels.profile, href: "/coming-soon" },
+  const items: TabItem[] = [
+    { key: "home", icon: IconHome, label: labels.home, href: "/dashboard" },
+    { key: "trainers", icon: IconTrainers, label: labels.trainers, href: "/trainers" },
+    { key: "progress", icon: IconProgress, label: labels.progress, href: "/coming-soon" },
+    { key: "profile", icon: IconProfile, label: labels.profile, href: "/coming-soon" },
   ];
 
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line/60 bg-white/95 backdrop-blur">
-      <div className="mx-auto grid w-full max-w-md grid-cols-4 pb-[max(0px,env(safe-area-inset-bottom))]">
-        {items.map((item) => {
-          // Заглушка /coming-soon стоит за несколькими вкладками —
-          // подсвечиваем только настоящие разделы. Сравнение по сегментам,
-          // чтобы гипотетический /dashboard-x не подсвечивал /dashboard.
-          const active =
-            item.href !== "/coming-soon" &&
-            (pathname === item.href || pathname.startsWith(`${item.href}/`));
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-1 pt-3 pb-2.5 text-[11px] ${
-                active
-                  ? "font-semibold text-blue-600"
-                  : "text-subtle transition-colors hover:text-foreground"
-              }`}
-            >
-              {active && <span className="absolute top-0 h-1 w-10 rounded-b-full bg-blue-600" />}
-              {item.icon}
-              {item.label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
-  );
+  // Заглушка /coming-soon стоит за несколькими вкладками — подсвечиваем
+  // только настоящие разделы. Сравнение по сегментам, чтобы гипотетический
+  // /dashboard-x не подсвечивал /dashboard.
+  const active = items.find(
+    (item) =>
+      item.href !== "/coming-soon" &&
+      (pathname === item.href || pathname.startsWith(`${item.href}/`)),
+  )?.key;
+
+  return <TabBar items={items} active={active} />;
 }

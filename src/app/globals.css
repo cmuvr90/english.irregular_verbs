@@ -1,8 +1,11 @@
 @import "tailwindcss";
+@import "../ui/tokens.css";
 
 /* Том Postgres из docker-compose принадлежит root: сканер источников Tailwind
    не должен туда заглядывать, иначе dev-сервер падает с Permission denied. */
 @source not "../../.data";
+/* Декораторы Storybook лежат в скрытой папке — автосканер её пропускает. */
+@source "../../.storybook";
 
 /* Тёмной темы у приложения нет — системный тёмный режим игнорируется.
    dark:-утилиты переключены на класс .dark, который нигде не ставится. */

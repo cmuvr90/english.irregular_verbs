@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CircleCheck, CircleX, Flame, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -8,9 +7,22 @@ import type { FlashcardProgress, FlashcardVerb } from "@/components/trainers/fla
 import { interpolate } from "@/lib/locales";
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
 import { buildDeck, mulberry32, REPEAT_AFTER } from "@/lib/trainer-deck";
-import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
 import { formOf, hasAnswer, hiddenGroups, matchesForm, type FormNumber } from "@/lib/verb-forms";
+import { cn } from "@/ui/cn";
+import { AnswerSheet } from "@/ui/composites/answer-sheet";
+import { EmptyState } from "@/ui/composites/empty-state";
+import { SessionProgress } from "@/ui/composites/session-progress";
+import { SessionSummary } from "@/ui/composites/session-summary";
+import { TopBar } from "@/ui/composites/top-bar";
+import { TrainerSteps } from "@/ui/composites/trainer-steps";
+import { IconReview, IconStreak } from "@/ui/icons";
+import { Badge } from "@/ui/primitives/badge";
+import { Button } from "@/ui/primitives/button";
+import { buttonClass } from "@/ui/primitives/button-styles";
+import { Card } from "@/ui/primitives/card";
+import { VerbForm } from "@/ui/primitives/verb-form";
+import { stepIcon } from "@/ui/trainer-icons";
 
 /**
  * Тренажёр «Заполни пропуски» (fill-blanks): три формы глагола, одна скрыта,
@@ -56,12 +68,6 @@ type Props = {
 
 /** Задание: глагол и скрытые формы (одна или несколько одинаковых). */
 type Task = { verb: FlashcardVerb; hidden: FormNumber[] };
-
-const stepChips = [
-  "bg-violet-100 text-violet-600",
-  "bg-blue-100 text-blue-600",
-  "bg-emerald-100 text-emerald-600",
-];
 
 const verbId = (verb: FlashcardVerb) => verb.id;
 
@@ -180,9 +186,10 @@ export function FillBlanksTrainer({
     if (statuses.get(verbIdValue) === "learned") setLearnedCount((n) => n - 1);
     statuses.set(verbIdValue, "repeat");
     setSessionWrong((n) => n + 1);
-    answerCard(trainerId, verbIdValue, "repeat", { form: askedForm, chosen: typed }).catch(
-      () => {},
-    );
+    answerCard(trainerId, verbIdValue, "repeat", {
+      form: askedForm,
+      chosen: typed,
+    }).catch(() => {});
 
     // Ошибку возвращаем в колоду через несколько позиций — кроме последнего
     // задания: иначе сессия зациклилась бы на одном глаголе. Скрытая форма
@@ -205,241 +212,193 @@ export function FillBlanksTrainer({
   };
 
   return (
-    <div className="mx-auto w-full max-w-md px-5 pt-6 pb-28">
-      {/* шапка: назад, название, огонёк выученных */}
-      <div className="flex items-center gap-3">
-        <Link
-          href={backHref}
-          aria-label={labels.back}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line/60 bg-white text-foreground shadow-sm transition-colors hover:bg-muted"
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-bold tracking-tight">{title}</h1>
-          <p className="text-sm text-subtle">{labels.howItWorks}</p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/60 bg-white py-2 pr-3.5 pl-3 shadow-sm">
-          <Flame size={18} className="text-orange-500" />
-          <span className="font-semibold text-blue-600">{learnedCount}</span>
-        </span>
-      </div>
+    <>
+      <TopBar
+        title={title}
+        subtitle={labels.howItWorks}
+        back={{ href: backHref, label: labels.back }}
+        actions={
+          <Badge tone="v2" icon={IconStreak} className="h-9 px-3.5 text-sm">
+            {learnedCount}
+          </Badge>
+        }
+      />
 
-      {deck.length === 0 ? (
-        <p className="mt-10 rounded-3xl border border-line/60 bg-white p-6 text-center text-subtle">
-          {labels.empty}
-        </p>
-      ) : finished ? (
-        /* экран итогов */
-        <div className="mt-8 flex flex-col items-center rounded-3xl border border-line/60 bg-white p-8 text-center">
-          <CircleCheck size={56} className="text-emerald-500" />
-          <h2 className="mt-4 text-2xl font-bold">{labels.finishTitle}</h2>
-          <p className="mt-1 text-subtle">
-            {interpolate(labels.scoreText, {
+      {/* pt-24 — место под шапку; снизу — под таб-бар или лист разбора */}
+      <div className={`mx-auto w-full max-w-md px-4 pt-24 ${answered ? "pb-96" : "pb-32"}`}>
+        {deck.length === 0 ? (
+          <EmptyState title={labels.empty} className="mt-6" />
+        ) : finished ? (
+          <SessionSummary
+            className="mt-4"
+            title={labels.finishTitle}
+            text={interpolate(labels.scoreText, {
               correct: sessionCorrect,
               total: sessionCorrect + sessionWrong,
             })}
-          </p>
-
-          <dl className="mt-6 grid w-full grid-cols-2 divide-x divide-line/60">
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-emerald-600">{sessionCorrect}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.correctCount}</dt>
-            </div>
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-rose-500">{sessionWrong}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.mistakes}</dt>
-            </div>
-          </dl>
-
-          <button
-            type="button"
-            onClick={restart}
-            className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            <RotateCw size={18} />
-            {labels.again}
-          </button>
-          <Link
-            href={backHref}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-line/60 bg-white py-3.5 font-medium transition-colors hover:bg-muted"
-          >
-            {labels.back}
-          </Link>
-        </div>
-      ) : (
-        task && (
-          <>
-            {/* прогресс сессии */}
-            <div className="mt-5 flex items-center gap-3">
-              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line/60">
-                <div
-                  className="h-full rounded-full bg-blue-600 transition-[width] duration-300"
-                  style={{ width: `${((index + 1) / deck.length) * 100}%` }}
-                />
-              </div>
-              <span className="shrink-0 text-sm font-semibold">
-                {index + 1}
-                <span className="font-normal text-subtle"> / {deck.length}</span>
-              </span>
-            </div>
-
-            {/* задание: три формы, одна — поле ввода */}
-            <form
-              onSubmit={onCheck}
-              className="mt-5 rounded-3xl border border-line/60 bg-white p-6 shadow-sm"
-            >
-              {/* Три формы столбиком, а не в строку: длина форм (understood) и
-                  ответа заранее неизвестна, и строчная раскладка на узком
-                  экране разъезжалась. Каждая строка — своя ширина, поле
-                  растягивается на всю строку и не толкает соседей. */}
-              <ol className="flex flex-col gap-2.5">
-                {([1, 2, 3] as const).map((form) => (
-                  <li key={form} className="grid grid-cols-[6.5rem_1fr] items-center gap-3">
-                    <span className="flex flex-col leading-tight">
-                      <span className="text-sm font-semibold text-blue-600">V{form}</span>
-                      <span className="text-[11px] whitespace-nowrap text-subtle">{FORM_NAMES[form - 1]}</span>
-                    </span>
-                    {form === askedForm ? (
-                      <input
-                        ref={inputRef}
-                        value={typed}
-                        onChange={(event) => setTyped(event.target.value)}
-                        // readOnly, а не disabled: поле остаётся в порядке табуляции,
-                        // и скринридер может прочитать ответ вместе с aria-invalid.
-                        readOnly={answered}
-                        aria-invalid={result === false}
-                        aria-describedby={answered ? "fill-blanks-result" : undefined}
-                        maxLength={MAX_ANSWER_LENGTH}
-                        aria-label={`${labels.fillPlaceholder}: ${task.hidden
-                          .map((f) => `V${f} ${FORM_NAMES[f - 1]}`)
-                          .join(", ")}`}
-                        placeholder="…"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="none"
-                        spellCheck={false}
-                        enterKeyHint="done"
-                        className={`h-12 w-full min-w-0 rounded-xl border-2 bg-white px-3 text-xl font-bold outline-none transition-colors ${
-                          result === true
-                            ? "border-emerald-500 text-emerald-600"
-                            : result === false
-                              ? "border-rose-500 text-rose-600 line-through decoration-2"
-                              : "border-blue-300 focus:border-blue-600"
-                        }`}
-                      />
-                    ) : task.hidden.includes(form) ? (
-                      // Вторая скрытая позиция с тем же написанием: повторяем
-                      // введённое, второго поля нет — ответ пишется один раз.
-                      <span
-                        aria-hidden
-                        className="flex h-12 min-w-0 items-center truncate rounded-xl border-2 border-dashed border-blue-200 px-3 text-xl font-bold text-subtle"
-                      >
-                        {typed.trim() || "…"}
-                      </span>
-                    ) : (
-                      <span className="flex h-12 min-w-0 items-center rounded-xl bg-muted px-3 text-xl font-bold break-all">
-                        {formOf(task.verb, form)}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ol>
-
-              {!answered && (
-                <>
-                  <p className="mt-4 text-center text-sm text-subtle">{settings.hint}</p>
-                  <button
-                    type="submit"
-                    disabled={!hasAnswer(typed)}
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {labels.check}
-                  </button>
-                </>
-              )}
-            </form>
-
-            {answered ? (
-              /* разбор */
-              <div
-                id="fill-blanks-result"
-                role="status"
-                className={`mt-4 rounded-3xl border p-5 ${
-                  result ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"
-                }`}
-              >
-                <p
-                  className={`flex items-center gap-2 font-semibold ${
-                    result ? "text-emerald-700" : "text-rose-700"
-                  }`}
+            illustration={{ src: "/images/app/mascot-celebrate.webp", alt: "" }}
+            stats={[
+              {
+                value: sessionCorrect,
+                label: labels.correctCount,
+                tone: "success",
+              },
+              { value: sessionWrong, label: labels.mistakes, tone: "v2" },
+            ]}
+            actions={
+              <>
+                <Button size="lg" block icon={IconReview} onClick={restart}>
+                  {labels.again}
+                </Button>
+                <Link
+                  href={backHref}
+                  className={buttonClass({
+                    variant: "secondary",
+                    size: "lg",
+                    block: true,
+                  })}
                 >
-                  {result ? <CircleCheck size={20} /> : <CircleX size={20} />}
-                  {result ? labels.correct : labels.wrong}
-                </p>
+                  {labels.back}
+                </Link>
+              </>
+            }
+          />
+        ) : (
+          task && (
+            <>
+              <SessionProgress current={index + 1} total={deck.length} label={title} tone="v2" />
 
-                {!result && (
-                  <>
-                    <p className="mt-2.5 text-sm">
-                      <span className="text-subtle">{labels.yourAnswer}: </span>
-                      <span className="font-semibold break-all text-rose-700">{typed.trim()}</span>
-                    </p>
-                    <p className="mt-1 text-sm">
-                      <span className="text-subtle">{labels.correctAnswer}: </span>
-                      <span className="font-semibold text-emerald-700">{expected}</span>
-                    </p>
-                  </>
-                )}
+              {/* задание: три формы, одна — поле ввода */}
+              <Card padding="lg" className="mt-5">
+                <form onSubmit={onCheck}>
+                  {/* Три формы столбиком, а не в строку: длина форм (understood) и
+                      ответа заранее неизвестна, и строчная раскладка на узком
+                      экране разъезжалась. Метка формы — над полем, поле
+                      растягивается на всю ширину и не толкает соседей. */}
+                  <ol className="flex flex-col gap-4">
+                    {([1, 2, 3] as const).map((form) => (
+                      <li key={form} className="flex flex-col gap-1.5">
+                        <VerbForm form={`v${form}`} variant="label" />
+                        {form === askedForm ? (
+                          <input
+                            ref={inputRef}
+                            value={typed}
+                            onChange={(event) => setTyped(event.target.value)}
+                            // readOnly, а не disabled: поле остаётся в порядке табуляции,
+                            // и скринридер может прочитать ответ вместе с aria-invalid.
+                            readOnly={answered}
+                            aria-invalid={result === false}
+                            aria-describedby={answered ? "fill-blanks-result" : undefined}
+                            maxLength={MAX_ANSWER_LENGTH}
+                            aria-label={`${labels.fillPlaceholder}: ${task.hidden
+                              .map((f) => `V${f} ${FORM_NAMES[f - 1]}`)
+                              .join(", ")}`}
+                            placeholder="…"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="none"
+                            spellCheck={false}
+                            enterKeyHint="done"
+                            // Классы — как у TextField variant="answer": самому TextField
+                            // нельзя передать ref, а фокус в поле нужен (см. эффект выше).
+                            className={cn(
+                              "t-verb h-16 w-full min-w-0 rounded-md bg-surface px-5 text-center text-2xl text-fg-strong ring-1 ring-hairline-strong transition-[box-shadow,background-color] duration-200 outline-none placeholder:text-fg-faint",
+                              "focus:shadow-[0_0_0_4px_var(--color-ink-100)] focus:ring-2 focus:ring-ink-500",
+                              // неверно — «ягода» и зачёркнутый ответ, верно — «листва»
+                              "aria-invalid:bg-berry-50/60 aria-invalid:text-berry-700 aria-invalid:line-through aria-invalid:decoration-2 aria-invalid:ring-2 aria-invalid:ring-berry-400 aria-invalid:focus:shadow-[0_0_0_4px_var(--color-berry-100)]",
+                              result === true &&
+                                "bg-leaf-50 text-leaf-700 ring-2 ring-leaf-400 focus:shadow-[0_0_0_4px_var(--color-leaf-100)] focus:ring-leaf-500",
+                            )}
+                          />
+                        ) : task.hidden.includes(form) ? (
+                          // Вторая скрытая позиция с тем же написанием: повторяем
+                          // введённое, второго поля нет — ответ пишется один раз.
+                          <span
+                            aria-hidden
+                            className="t-verb flex h-16 min-w-0 items-center justify-center truncate rounded-md border-2 border-dashed border-hairline-strong px-5 text-2xl text-fg-faint"
+                          >
+                            {typed.trim() || "…"}
+                          </span>
+                        ) : (
+                          // Известная форма — на «утопленной» плашке, цветом своей формы.
+                          <span className="flex min-h-16 min-w-0 items-center justify-center rounded-md bg-surface-sunken px-5 inset-shadow-sunken">
+                            <VerbForm
+                              form={`v${form}`}
+                              word={formOf(task.verb, form)}
+                              variant="text"
+                              className="text-2xl break-all"
+                            />
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
 
-                <p className="mt-2.5 text-sm">
-                  <span className="font-semibold">
-                    {task.verb.form1} – {task.verb.form2} – {task.verb.form3}
-                  </span>
-                  {task.verb.translation && (
-                    <span className="text-subtle"> · {task.verb.translation}</span>
+                  {!answered && (
+                    <>
+                      <p className="t-body-sm mt-4 text-center text-fg-muted">{settings.hint}</p>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="lg"
+                        block
+                        disabled={!hasAnswer(typed)}
+                        className="mt-5"
+                      >
+                        {labels.check}
+                      </Button>
+                    </>
                   )}
-                </p>
+                </form>
+              </Card>
 
-                <button
-                  ref={nextRef}
-                  type="button"
-                  onClick={onNext}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-                >
-                  {labels.next}
-                  <ArrowRight size={18} />
-                </button>
-              </div>
-            ) : (
-              /* шаги «как работает тренажёр» из settings — только до ответа */
-              <ul className="mt-6 flex flex-col gap-3">
-                {settings.steps.map((step, i) => {
-                  const StepIcon = stepIcon(step.icon);
-                  return (
-                    <li
-                      key={step.position}
-                      className="flex items-center gap-3.5 rounded-3xl border border-line/60 bg-white p-4"
-                    >
-                      <span
-                        className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${stepChips[i % stepChips.length]}`}
-                      >
-                        <StepIcon size={22} />
-                      </span>
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-subtle">
-                        {step.position}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold">{step.name}</span>
-                        <span className="block text-xs text-subtle">{step.description}</span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </>
-        )
-      )}
-    </div>
+              {/* шаги «как работает тренажёр» из settings — только до ответа,
+                  чтобы не отвлекать от разбора */}
+              {!answered && (
+                <TrainerSteps
+                  className="mt-8"
+                  title={labels.howItWorks}
+                  steps={settings.steps.map((step) => ({
+                    ...step,
+                    icon: stepIcon(step.icon),
+                  }))}
+                />
+              )}
+            </>
+          )
+        )}
+      </div>
+
+      {/* разбор — лист снизу; id — для aria-describedby поля ответа */}
+      <AnswerSheet
+        id="fill-blanks-result"
+        actionRef={nextRef}
+        result={!finished && answered ? (result ? "correct" : "wrong") : null}
+        title={result ? labels.correct : labels.wrong}
+        answerLabel={labels.correctAnswer}
+        answer={expected && <span className="t-verb text-2xl text-leaf-700">{expected}</span>}
+        details={[
+          ...(result === false && typed.trim()
+            ? [
+                {
+                  label: labels.yourAnswer,
+                  text: (
+                    <span className="t-verb break-all text-berry-700 line-through decoration-2">
+                      {typed.trim()}
+                    </span>
+                  ),
+                },
+              ]
+            : []),
+        ]}
+        explanation={
+          task
+            ? `${task.verb.form1} – ${task.verb.form2} – ${task.verb.form3}${task.verb.translation ? ` · ${task.verb.translation}` : ""}`
+            : undefined
+        }
+        actionLabel={labels.next}
+        onAction={onNext}
+      />
+    </>
   );
 }

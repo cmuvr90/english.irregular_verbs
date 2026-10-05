@@ -1,20 +1,26 @@
 "use client";
 
-import {
-  ArrowLeft,
-  Check,
-  CircleCheck,
-  Eye,
-  Flame,
-  RotateCw,
-} from "lucide-react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { answerCard, recordCardView } from "@/lib/trainer-actions";
 import { buildDeck, mulberry32, REPEAT_AFTER } from "@/lib/trainer-deck";
-import { stepIcon } from "@/lib/trainer-icons";
 import type { TrainerSettings } from "@/lib/trainer-settings";
+import { EmptyState } from "@/ui/composites/empty-state";
+import { SessionProgress } from "@/ui/composites/session-progress";
+import { SessionSummary } from "@/ui/composites/session-summary";
+import { TopBar } from "@/ui/composites/top-bar";
+import { TrainerSteps } from "@/ui/composites/trainer-steps";
+import { IconCheck, IconReview, IconShow, IconStreak } from "@/ui/icons";
+import { spring } from "@/ui/motion/presets";
+import { Badge } from "@/ui/primitives/badge";
+import { Button } from "@/ui/primitives/button";
+import { buttonClass } from "@/ui/primitives/button-styles";
+import { Card } from "@/ui/primitives/card";
+import { VerbForm } from "@/ui/primitives/verb-form";
+import { stepIcon } from "@/ui/trainer-icons";
 
 /**
  * Тренажёр «Карточки» (flashcards). Компонент заточен ровно под этот тип
@@ -71,12 +77,6 @@ type Props = {
 };
 
 const verbId = (verb: FlashcardVerb) => verb.id;
-
-const stepChips = [
-  "bg-violet-100 text-violet-600",
-  "bg-blue-100 text-blue-600",
-  "bg-emerald-100 text-emerald-600",
-];
 
 export function FlashcardsTrainer({
   trainerId,
@@ -204,162 +204,173 @@ export function FlashcardsTrainer({
   };
 
   return (
-    <div className="mx-auto w-full max-w-md px-5 pt-6 pb-28">
-      {/* шапка: назад, название, огонёк выученных */}
-      <div className="flex items-center gap-3">
-        <Link
-          href={backHref}
-          aria-label={labels.back}
-          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line/60 bg-white text-foreground shadow-sm transition-colors hover:bg-muted"
-        >
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-bold tracking-tight">{title}</h1>
-          <p className="text-sm text-subtle">{labels.howItWorks}</p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/60 bg-white py-2 pr-3.5 pl-3 shadow-sm">
-          <Flame size={18} className="text-orange-500" />
-          <span className="font-semibold text-blue-600">{learnedCount}</span>
-        </span>
-      </div>
+    <>
+      <TopBar
+        title={title}
+        subtitle={labels.howItWorks}
+        back={{ href: backHref, label: labels.back }}
+        actions={
+          <Badge tone="v2" icon={IconStreak} className="h-9 px-3.5 text-sm">
+            {learnedCount}
+          </Badge>
+        }
+      />
 
-      {verbs.length === 0 ? (
-        <p className="mt-10 rounded-3xl border border-line/60 bg-white p-6 text-center text-subtle">
-          {labels.empty}
-        </p>
-      ) : finished ? (
-        /* экран итогов */
-        <div className="mt-8 flex flex-col items-center rounded-3xl border border-line/60 bg-white p-8 text-center">
-          <CircleCheck size={56} className="text-emerald-500" />
-          <h2 className="mt-4 text-2xl font-bold">{labels.finishTitle}</h2>
-          <p className="mt-1 text-subtle">{labels.finishText}</p>
+      {/* pt-24 освобождает место под фиксированную шапку, pb-32 — под таб-бар */}
+      <div className="mx-auto w-full max-w-md px-4 pt-24 pb-32">
+        {verbs.length === 0 ? (
+          <EmptyState title={labels.empty} className="mt-6" />
+        ) : finished ? (
+          <SessionSummary
+            className="mt-4"
+            title={labels.finishTitle}
+            text={labels.finishText}
+            illustration={{ src: "/images/app/mascot-celebrate.webp", alt: "" }}
+            stats={[
+              { value: sessionKnow, label: labels.know, tone: "success" },
+              { value: sessionRepeat, label: labels.repeat, tone: "v2" },
+            ]}
+            actions={
+              <>
+                <Button size="lg" block icon={IconReview} onClick={restart}>
+                  {labels.again}
+                </Button>
+                <Link
+                  href={backHref}
+                  className={buttonClass({
+                    variant: "secondary",
+                    size: "lg",
+                    block: true,
+                  })}
+                >
+                  {labels.back}
+                </Link>
+              </>
+            }
+          />
+        ) : (
+          card && (
+            <>
+              <SessionProgress current={index + 1} total={deck.length} label={title} tone="v3" />
 
-          <dl className="mt-6 grid w-full grid-cols-2 divide-x divide-line/60">
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-emerald-600">{sessionKnow}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.know}</dt>
-            </div>
-            <div className="px-2 text-center">
-              <dd className="text-3xl font-bold text-orange-500">{sessionRepeat}</dd>
-              <dt className="mt-0.5 text-sm text-subtle">{labels.repeat}</dt>
-            </div>
-          </dl>
-
-          <button
-            type="button"
-            onClick={restart}
-            className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            <RotateCw size={18} />
-            {labels.again}
-          </button>
-          <Link
-            href={backHref}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-line/60 bg-white py-3.5 font-medium transition-colors hover:bg-muted"
-          >
-            {labels.back}
-          </Link>
-        </div>
-      ) : (
-        card && (
-          <>
-            {/* прогресс сессии */}
-            <div className="mt-5 flex items-center gap-3">
-              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line/60">
+              {/* карточка со стопкой-подложкой: три «неба» форм глагола */}
+              <div className="relative mt-5">
                 <div
-                  className="h-full rounded-full bg-blue-600 transition-[width] duration-300"
-                  style={{ width: `${((index + 1) / deck.length) * 100}%` }}
+                  className="absolute inset-x-4 -bottom-3 h-full rounded-2xl bg-grad-dusk opacity-35"
+                  aria-hidden
                 />
-              </div>
-              <span className="shrink-0 text-sm font-semibold">
-                {index + 1}
-                <span className="font-normal text-subtle"> / {deck.length}</span>
-              </span>
-            </div>
-
-            {/* карточка со стопкой-подложкой */}
-            <div className="relative mt-5">
-              <div className="absolute inset-x-3 -bottom-2 h-full rounded-3xl bg-violet-100" aria-hidden />
-              <div className="absolute inset-x-1.5 -bottom-1 h-full rounded-3xl bg-blue-100" aria-hidden />
-              <button
-                type="button"
-                onClick={() => setRevealed(true)}
-                className="relative flex min-h-64 w-full flex-col items-center justify-center rounded-3xl border border-line/60 bg-white p-8 shadow-sm"
-              >
-                <span className="text-5xl font-bold tracking-tight">{card.form1}</span>
-                {revealed ? (
-                  <span className="mt-6 border-t border-line/60 pt-5 text-center">
-                    <span className="block text-3xl font-bold text-emerald-600">
-                      {card.form2} — {card.form3}
-                    </span>
-                    <span className="mt-2 block text-lg text-subtle">{card.translation}</span>
-                  </span>
-                ) : (
-                  <span className="mt-6 border-t border-line/60 pt-5 text-sm text-subtle">
-                    {settings.hint}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* шаги «как работает тренажёр» из settings */}
-            <ul className="mt-6 flex flex-col gap-3">
-              {settings.steps.map((step, i) => {
-                const StepIcon = stepIcon(step.icon);
-                return (
-                  <li
-                    key={step.position}
-                    className="flex items-center gap-3.5 rounded-3xl border border-line/60 bg-white p-4"
+                <div
+                  className="absolute inset-x-2 -bottom-1.5 h-full rounded-2xl bg-grad-sunset opacity-45"
+                  aria-hidden
+                />
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <m.div
+                    // Ключ по позиции в колоде: повтор той же карточки — это новая анимация.
+                    key={`${round}:${index}`}
+                    initial={{ opacity: 0, x: 60, rotate: 4 }}
+                    animate={{ opacity: 1, x: 0, rotate: 0 }}
+                    exit={{ opacity: 0, x: -60, rotate: -4 }}
+                    transition={spring.gentle}
                   >
-                    <span
-                      className={`flex size-11 shrink-0 items-center justify-center rounded-2xl ${stepChips[i % stepChips.length]}`}
-                    >
-                      <StepIcon size={22} />
-                    </span>
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-subtle">
-                      {step.position}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold">{step.name}</span>
-                      <span className="block text-xs text-subtle">{step.description}</span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+                    <Card padding="none" className="overflow-hidden">
+                      <div className="absolute inset-x-0 top-0 h-1.5 bg-grad-day" aria-hidden />
+                      <button
+                        type="button"
+                        onClick={() => setRevealed(true)}
+                        className="focus-ring flex min-h-72 w-full flex-col items-center justify-center rounded-xl p-8"
+                      >
+                        <VerbForm form="v1" variant="label" />
+                        <VerbForm
+                          form="v1"
+                          word={card.form1}
+                          variant="text"
+                          className="mt-3 text-5xl"
+                        />
+                        <AnimatePresence mode="wait" initial={false}>
+                          {revealed ? (
+                            <m.span
+                              key="answer"
+                              initial={{
+                                opacity: 0,
+                                y: 12,
+                                filter: "blur(6px)",
+                              }}
+                              animate={{
+                                opacity: 1,
+                                y: 0,
+                                filter: "blur(0px)",
+                              }}
+                              transition={spring.gentle}
+                              className="mt-6 flex w-full flex-col items-center border-t border-hairline pt-5"
+                            >
+                              <span className="flex flex-wrap justify-center gap-2">
+                                <VerbForm form="v2" word={card.form2} size="lg" />
+                                <VerbForm form="v3" word={card.form3} size="lg" />
+                              </span>
+                              <span className="t-body mt-3 text-fg-muted">{card.translation}</span>
+                            </m.span>
+                          ) : (
+                            <m.span
+                              key="hint"
+                              exit={{ opacity: 0, y: -8 }}
+                              className="t-body-sm mt-6 w-full border-t border-hairline pt-5 text-fg-muted"
+                            >
+                              {settings.hint}
+                            </m.span>
+                          )}
+                        </AnimatePresence>
+                      </button>
+                    </Card>
+                  </m.div>
+                </AnimatePresence>
+              </div>
 
-            {/* действия */}
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                onClick={onKnow}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3.5 font-medium text-white transition-colors hover:bg-blue-700"
+              {/* действия */}
+              <div className="mt-7 flex gap-3">
+                <Button
+                  variant="success"
+                  size="lg"
+                  icon={IconCheck}
+                  onClick={onKnow}
+                  className="flex-1"
+                >
+                  {labels.know}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  icon={IconReview}
+                  onClick={onRepeat}
+                  className="flex-1"
+                >
+                  {labels.repeat}
+                </Button>
+              </div>
+              <Button
+                variant="soft"
+                size="lg"
+                block
+                icon={IconShow}
+                onClick={() => setRevealed(true)}
+                disabled={revealed}
+                className="mt-3"
               >
-                <Check size={18} />
-                {labels.know}
-              </button>
-              <button
-                type="button"
-                onClick={onRepeat}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-line/60 bg-white py-3.5 font-medium transition-colors hover:bg-muted"
-              >
-                <RotateCw size={18} />
-                {labels.repeat}
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setRevealed(true)}
-              disabled={revealed}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-line/60 bg-white py-3.5 font-medium transition-colors hover:bg-muted disabled:opacity-50"
-            >
-              <Eye size={18} />
-              {labels.showAnswer}
-            </button>
-          </>
-        )
-      )}
-    </div>
+                {labels.showAnswer}
+              </Button>
+
+              {/* шаги «как работает тренажёр» из settings */}
+              <TrainerSteps
+                className="mt-8"
+                title={labels.howItWorks}
+                steps={settings.steps.map((step) => ({
+                  ...step,
+                  icon: stepIcon(step.icon),
+                }))}
+              />
+            </>
+          )
+        )}
+      </div>
+    </>
   );
 }

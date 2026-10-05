@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { BackLink } from "@/components/admin/back-link";
 import { DeleteButton } from "@/components/admin/form-fields";
 import { Badge, buttonClass, Card, PageHeader, PillTitle } from "@/components/admin/ui";
+import { VerbAudioForm } from "@/components/admin/verb-audio-form";
 import { VerbForm } from "@/components/admin/verb-form";
 import { VerbImageForm } from "@/components/admin/verb-image-form";
 import { getVerb, listGroups } from "@/dal/admin";
@@ -51,12 +52,18 @@ export default async function EditVerbPage({ params }: Props) {
 
         <div className="flex flex-col gap-6">
           <VerbImageForm
-            // Новый URL после загрузки или удаления пересоздаёт форму: сбрасываются
-            // локальное превью и выбранный файл.
-            key={verb.imageUrl ?? "none"}
             verbId={verb.id}
             imageUrl={verb.imageUrl}
             verbLabel={`${verb.form1} – ${verb.form2} – ${verb.form3}`}
+          />
+          <VerbAudioForm
+            verbId={verb.id}
+            infinitive={verb.form1}
+            forms={[
+              { text: verb.form1, audioUrl: verb.audio1Url },
+              { text: verb.form2, audioUrl: verb.audio2Url },
+              { text: verb.form3, audioUrl: verb.audio3Url },
+            ]}
           />
           <Card
             title="Предложения"

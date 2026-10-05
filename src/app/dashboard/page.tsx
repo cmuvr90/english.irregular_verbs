@@ -1,48 +1,53 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-
-import {
-  BookOpen,
-  CalendarCheck,
-  ChartColumn,
-  ChevronRight,
-  Dumbbell,
-  Flame,
-  Globe,
-  List,
-  RotateCw,
-  Settings,
-  ShieldCheck,
-  Target,
-  WalletCards,
-} from "lucide-react";
 
 import { BottomNav } from "@/components/bottom-nav";
-import { TargetBoard } from "@/components/icons";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Mascot } from "@/components/mascot";
 import { SignOutButton } from "@/components/sign-out-button";
+import { getDashboardStats, type WeekDay } from "@/dal/dashboard";
 import { getDictionary } from "@/lib/dictionaries";
 import { getLocale } from "@/lib/i18n";
-import { interpolate, plural } from "@/lib/locales";
+import { interpolate, pickLocalized, plural } from "@/lib/locales";
 import { isAdmin } from "@/lib/roles";
 import { requireSession } from "@/lib/session";
+import { getTimeZone } from "@/lib/time-zone-server";
+import { ContinueCard } from "@/ui/composites/continue-card";
+import { DailyGoalCard } from "@/ui/composites/daily-goal-card";
+import { GreetingHero } from "@/ui/composites/greeting-hero";
+import { QuickAction } from "@/ui/composites/quick-action";
+import { SectionHeader } from "@/ui/composites/section-header";
+import { StatsStrip } from "@/ui/composites/stat-tile";
+import { type StreakDay, StreakCard } from "@/ui/composites/streak-card";
+import { TopBar } from "@/ui/composites/top-bar";
+import {
+  IconAdmin,
+  IconCalendar,
+  IconLanguage,
+  IconProgress,
+  IconReview,
+  IconSettings,
+  IconStreak,
+  IconTrainers,
+  IconVerbs,
+} from "@/ui/icons";
+import { Badge } from "@/ui/primitives/badge";
+import { Card } from "@/ui/primitives/card";
+import { IconButtonLink } from "@/ui/primitives/icon-button-link";
+import { trainerLook } from "@/ui/trainer-icons";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary(await getLocale());
   return { title: dict.meta.dashboard };
 }
 
-// Демо-режим: цифры и прогресс захардкожены, разделы ведут на /coming-soon.
-const demo = {
-  verbs: 152,
-  streak: 7,
-  sessions: 23,
-  level: "B1",
-  trainerProgress: 65,
-  goalDone: 12,
-  goalTotal: 20,
-};
+/** Подписи дней недели — из Intl, чтобы не держать их в словарях: «Пн», «Вт»… */
+function weekLabels(locale: string, week: WeekDay[]): StreakDay[] {
+  const format = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" });
+  return week.map(({ day, state }) => {
+    const label = format.format(new Date(`${day}T12:00:00Z`)).replace(".", "");
+    return { label: label.charAt(0).toUpperCase() + label.slice(1, 2), state };
+  });
+}
 
 export default async function DashboardPage() {
   const session = await requireSession();
@@ -51,193 +56,131 @@ export default async function DashboardPage() {
   const t = dict.dashboard;
 
   const firstName = (session.user.name || session.user.email).split(" ")[0];
-  const goalLeft = demo.goalTotal - demo.goalDone;
-  const goalPercent = Math.round((demo.goalDone / demo.goalTotal) * 100);
+  const stats = await getDashboardStats(session.user.id, await getTimeZone());
+  const goalLeft = Math.max(0, stats.today.goal - stats.today.done);
 
-  const stats = [
-    {
-      icon: <BookOpen size={22} />,
-      chip: "bg-emerald-100 text-emerald-600",
-      value: demo.verbs,
-      color: "text-emerald-600",
-      label: t.statVerbs,
-    },
-    {
-      icon: <Flame size={20} />,
-      chip: "bg-orange-100 text-orange-500",
-      value: demo.streak,
-      color: "text-orange-500",
-      label: t.statDays,
-    },
-    {
-      icon: <CalendarCheck size={22} />,
-      chip: "bg-blue-100 text-blue-600",
-      value: demo.sessions,
-      color: "text-blue-600",
-      label: t.statSessions,
-    },
-  ];
+  // «Продолжить» ведёт в последний тренажёр; новичку — первый по порядку.
+  const next = stats.continueWith;
+  const nextProgress = next && next.total > 0 ? Math.round((next.learned / next.total) * 100) : 0;
 
-  const quickAccess = [
-    { icon: <Dumbbell size={22} />, chip: "bg-blue-100 text-blue-600", label: t.trainers, href: "/coming-soon" },
-    { icon: <List size={22} />, chip: "bg-emerald-100 text-emerald-600", label: t.verbList, href: "/verbs" },
-    { icon: <RotateCw size={22} />, chip: "bg-violet-100 text-violet-600", label: t.review, href: "/coming-soon" },
-    { icon: <Settings size={22} />, chip: "bg-zinc-100 text-zinc-500", label: t.settings, href: "/coming-soon" },
-  ];
+  // Подсказка под неделей: цель дня закрыта — «до завтра»; занимался, но цель
+  // не добил — молчим (серия уже в безопасности); не занимался — зовём.
+  const streakNote =
+    stats.today.done >= stats.today.goal
+      ? t.streakDoneToday
+      : stats.today.active
+        ? undefined
+        : stats.streak > 0
+          ? t.streakKeep
+          : t.streakStart;
 
   return (
-    <main className="flex-1 bg-white">
-      <div className="mx-auto w-full max-w-md px-5 pt-8 pb-28">
-        {/* шапка */}
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{dict.common.appName}</h1>
-            <p className="mt-1 text-sm text-subtle">{dict.common.tagline}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
+    <main className="flex-1 bg-canvas">
+      <TopBar
+        title={dict.common.appName}
+        subtitle={dict.common.tagline}
+        actions={
+          <>
+            <Badge tone="v2" icon={IconStreak} className="h-9 px-3.5 text-sm">
+              {stats.streak}
+            </Badge>
             {isAdmin(session.user) && (
-              <Link
-                href="/admin"
-                aria-label={dict.common.admin}
-                title={dict.common.admin}
-                className="flex size-11 items-center justify-center rounded-full border border-line/60 bg-white text-subtle shadow-sm transition-colors hover:text-blue-600"
-              >
-                <ShieldCheck size={20} />
-              </Link>
+              <IconButtonLink href="/admin" icon={IconAdmin} label={dict.common.admin} />
             )}
-            <span className="flex items-center gap-1.5 rounded-full border border-line/60 bg-white py-2.5 pr-4 pl-3 shadow-sm">
-              <Flame size={20} className="text-orange-500" />
-              <span className="font-semibold text-blue-600">{demo.streak}</span>
-            </span>
             <SignOutButton label={dict.auth.signOut} />
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        {/* приветствие */}
-        <section className="mt-5 flex items-center overflow-hidden rounded-3xl border border-line/60 bg-gradient-to-r from-white to-blue-100">
-          <div className="min-w-0 flex-1 p-6">
-            <h2 className="text-2xl font-bold tracking-tight">
-              {interpolate(t.greeting, { name: firstName })}
-            </h2>
-            <p className="mt-2 text-subtle">{t.greetingNote}</p>
-          </div>
-          <Mascot className="-mr-4 w-44 shrink-0" />
-        </section>
+      {/* pt-24 освобождает место под фиксированную шапку, pb-32 — под таб-бар */}
+      <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-24 pb-32">
+        <GreetingHero
+          badge={`${stats.level} · ${t.levels[stats.level]}`}
+          greeting={interpolate(t.greeting, { name: firstName })}
+          note={stats.answers > 0 ? t.greetingNote : t.greetingNoteNew}
+          illustration={{ src: "/images/app/mascot-wave.webp", alt: "" }}
+          fallback={<Mascot className="w-full" />}
+        />
 
-        {/* статистика */}
-        <section className="mt-4 rounded-3xl border border-line/60 bg-white p-4">
-          <ul className="grid grid-cols-4 divide-x divide-line/60">
-            {stats.map((s) => (
-              <li key={s.label} className="flex flex-col items-center gap-1.5 px-1 text-center">
-                <span className={`flex size-11 items-center justify-center rounded-2xl ${s.chip}`}>
-                  {s.icon}
-                </span>
-                <span className={`text-2xl font-bold ${s.color}`}>{s.value}</span>
-                <span className="text-[11px] leading-tight text-subtle">{s.label}</span>
-              </li>
-            ))}
-            <li className="flex flex-col items-center gap-1.5 px-1 text-center">
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-                <ChartColumn size={20} />
-              </span>
-              <span className="text-[11px] text-subtle">{t.statLevel}</span>
-              <span className="text-2xl leading-none font-bold text-violet-600">{demo.level}</span>
-              <span className="text-[11px] leading-tight text-subtle">{t.statLevelName}</span>
-            </li>
-          </ul>
-        </section>
+        <StatsStrip
+          stats={[
+            {
+              icon: IconVerbs,
+              tone: "v1",
+              value: stats.learned,
+              label: plural(locale, stats.learned, t.statVerbs),
+            },
+            {
+              icon: IconStreak,
+              tone: "v2",
+              value: stats.streak,
+              label: plural(locale, stats.streak, t.statDays),
+            },
+            {
+              icon: IconCalendar,
+              tone: "v3",
+              value: stats.answers,
+              label: plural(locale, stats.answers, t.statSessions),
+            },
+            { icon: IconProgress, tone: "ink", value: stats.level, label: t.statLevel },
+          ]}
+        />
 
-        {/* продолжить обучение */}
-        <section className="mt-4 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-700 p-6 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold">{t.continueTitle}</h2>
-              <p className="mt-1 text-sm text-blue-100">{t.continueSubtitle}</p>
-            </div>
-            <ProgressRing value={demo.trainerProgress} />
-          </div>
+        {next && (
+          <ContinueCard
+            title={next.started ? t.continueTitle : t.startTitle}
+            subtitle={next.started ? t.continueSubtitle : t.startSubtitle}
+            trainer={{
+              name: pickLocalized(next.name, locale),
+              kind: interpolate(t.continueProgress, { learned: next.learned, total: next.total }),
+              icon: trainerLook(next.key).icon,
+            }}
+            progress={nextProgress}
+            action={{
+              label: next.started ? t.continueAction : t.startAction,
+              href: `/trainers/${next.key}`,
+            }}
+          />
+        )}
 
-          <div className="mt-4 flex items-center gap-4">
-            <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/95 text-violet-600">
-              <WalletCards size={26} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-lg font-bold">{t.trainerName}</p>
-              <p className="text-sm text-blue-100">{t.trainerKind}</p>
-            </div>
-          </div>
+        <DailyGoalCard
+          title={t.todayTitle}
+          subtitle={t.todayGoal}
+          done={stats.today.done}
+          total={stats.today.goal}
+          unit={t.verbs}
+          remaining={plural(locale, goalLeft, t.remaining)}
+          completeText={t.goalDone}
+          changeGoal={{ label: t.changeGoal, href: "/coming-soon" }}
+        />
 
-          <Link
-            href="/coming-soon"
-            className="mt-5 flex items-center justify-center gap-2 rounded-2xl bg-white py-3.5 font-medium text-blue-600 transition-opacity hover:opacity-90"
-          >
-            {t.continueAction}
-            <ChevronRight size={16} />
-          </Link>
-        </section>
+        <StreakCard
+          days={stats.streak}
+          caption={plural(locale, stats.streak, t.statDays)}
+          week={weekLabels(locale, stats.week)}
+          note={streakNote}
+        />
 
-        {/* сегодня */}
-        <section className="mt-4 rounded-3xl border border-line/60 bg-white p-6">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-bold">{t.todayTitle}</h2>
-            <Link
-              href="/coming-soon"
-              className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3.5 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100"
-            >
-              <Target size={16} />
-              {t.changeGoal}
-            </Link>
-          </div>
-          <p className="mt-1 text-sm text-subtle">{t.todayGoal}</p>
-
-          <div className="mt-4 flex items-center gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-lg">
-                <span className="text-3xl font-bold text-blue-600">{demo.goalDone}</span>
-                <span className="text-subtle"> / {demo.goalTotal}</span>
-              </p>
-              <p className="text-sm text-subtle">{t.verbs}</p>
-              <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-line/60">
-                <div
-                  className="h-full rounded-full bg-emerald-500"
-                  style={{ width: `${goalPercent}%` }}
-                />
-              </div>
-              <p className="mt-2 text-sm text-subtle">{plural(locale, goalLeft, t.remaining)}</p>
-            </div>
-            <TargetBoard />
+        <section className="mt-3">
+          <SectionHeader title={t.quickAccess} />
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <QuickAction icon={IconTrainers} tone="ink" label={t.trainers} href="/trainers" />
+            <QuickAction icon={IconVerbs} tone="v1" label={t.verbList} href="/verbs" />
+            <QuickAction icon={IconReview} tone="v3" label={t.review} href="/coming-soon" />
+            <QuickAction icon={IconSettings} tone="mist" label={t.settings} href="/coming-soon" />
           </div>
         </section>
-
-        {/* быстрый доступ */}
-        <h2 className="mt-7 text-xl font-bold">{t.quickAccess}</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {quickAccess.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex flex-col items-center gap-2.5 rounded-3xl border border-line/60 bg-white p-4 pt-5 text-center transition-shadow hover:shadow-md"
-            >
-              <span className={`flex size-14 items-center justify-center rounded-2xl ${item.chip}`}>
-                {item.icon}
-              </span>
-              <span className="text-sm font-medium">{item.label}</span>
-              <ChevronRight size={16} className="text-subtle" />
-            </Link>
-          ))}
-        </div>
 
         {/* язык интерфейса */}
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-3xl border border-line/60 bg-white px-5 py-4">
-          <span className="flex items-center gap-2.5 text-sm font-medium">
-            <Globe size={20} className="text-subtle" />
+        <Card padding="sm" className="flex flex-wrap items-center justify-between gap-3">
+          <span className="t-label flex items-center gap-2.5 text-fg">
+            <IconLanguage size={20} weight="duotone" className="text-fg-muted" aria-hidden />
             {dict.common.language}
           </span>
-          <LanguageSwitcher current={locale} />
-        </div>
+          <LanguageSwitcher current={locale} label={dict.common.language} />
+        </Card>
       </div>
 
-      {/* нижняя навигация */}
       <BottomNav
         labels={{
           home: t.navHome,
@@ -247,38 +190,5 @@ export default async function DashboardPage() {
         }}
       />
     </main>
-  );
-}
-
-/** Кольцо прогресса: полный круг 2πr, закрашиваем value% через stroke-dasharray. */
-function ProgressRing({ value }: { value: number }) {
-  const r = 30;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg width="76" height="76" viewBox="0 0 76 76" className="shrink-0" aria-hidden>
-      <circle cx="38" cy="38" r={r} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="7" />
-      <circle
-        cx="38"
-        cy="38"
-        r={r}
-        fill="none"
-        stroke="#34d399"
-        strokeWidth="7"
-        strokeLinecap="round"
-        strokeDasharray={`${(c * value) / 100} ${c}`}
-        transform="rotate(-90 38 38)"
-      />
-      <text
-        x="38"
-        y="43"
-        textAnchor="middle"
-        fill="#fff"
-        fontSize="17"
-        fontWeight="bold"
-        fontFamily="inherit"
-      >
-        {value}%
-      </text>
-    </svg>
   );
 }

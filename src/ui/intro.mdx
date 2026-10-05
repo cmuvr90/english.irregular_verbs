@@ -1,0 +1,39 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Введение" />
+
+# Irregular Verbs · дизайн-система
+
+Витрина стилей **приложения** (не админки). Три слоя, каждый строится только на предыдущем:
+
+1. **Основа** — токены: цвета, текст, тени, радиусы, эффекты, движение, иконки.
+   Живут в `src/ui/tokens.css` (Tailwind v4 `@theme`) и `src/ui/motion/presets.ts`.
+2. **Примитивы** — минимальные самостоятельные компоненты: `Button`, `Card`, `Badge`,
+   `IconTile`, `VerbForm`, `ProgressBar`, `ProgressRing`, `TextField`… — `src/ui/primitives`.
+3. **Композиты** — смысловые блоки экранов из примитивов: `ContinueCard`, `DailyGoalCard`,
+   `StreakCard`, `TrainerCard`, `TabBar`, `AnswerSheet`… — `src/ui/composites`.
+
+Сверху — **Экраны**: сборки из композитов, черновики будущих страниц.
+
+## Метафора: время суток
+
+Три формы неправильного глагола — три неба.
+
+| Форма | Время | Палитра | Утилиты |
+| --- | --- | --- | --- |
+| V1 · Infinitive | рассвет | `dawn` | `v1-*`, `bg-grad-dawn` |
+| V2 · Past Simple | закат | `coral` | `v2-*`, `bg-grad-sunset` |
+| V3 · Past Participle | сумерки | `orchid` | `v3-*`, `bg-grad-dusk` |
+
+Бренд — ультрамариновые **чернила** (`ink`), фон — холодная **бумага** (`canvas`).
+Тени подкрашены ультрамарином, градиенты покрыты плёночным зерном (`grain`).
+
+## Правила
+
+- Цвета — только через роли (`v1`, `success`, `fg-muted`…), а не сырые палитры Tailwind.
+- Иконки — только из `src/ui/icons.ts` (Phosphor). regular — служебные, duotone — в плашках, fill — активные.
+- Анимации — только `m.*` из `motion/react-m` и пресеты из `motion/presets.ts`. Полный `motion.*` запрещён
+  (LazyMotion strict упадёт с ошибкой).
+- Иллюстрации — через `Illustration`: пока файла нет, рисуется аккуратная заглушка с именем файла.
+  Картинки кладём в `public/images/app/`.
+- Тема одна — светлая.

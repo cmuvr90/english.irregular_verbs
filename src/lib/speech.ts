@@ -1,14 +1,16 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Озвучка для тренажёра «Выбери, что слышишь».
  *
- * Сейчас звук синтезирует браузер (Web Speech API). Следующий шаг —
- * заранее сгенерированные файлы в Vercel Blob: тогда у глагола появится
- * audioUrl, и play() возьмёт файл, а синтез останется запасным вариантом
- * для глаголов без файла. Компоненту для этого ничего менять не придётся.
+ * Если у глагола загружена озвучка (audioUrls — по файлу на форму в Vercel
+ * Blob), play() играет файлы по очереди; для глаголов без озвучки звук
+ * синтезирует браузер (Web Speech API).
  */
+
+/** Пауза между формами при проигрывании файлов — как запятая у синтеза. */
+const FORM_PAUSE_MS = 350;
 
 export type SpeechSupport = "checking" | "ready" | "unsupported";
 
@@ -30,6 +32,10 @@ export function useVerbSpeech() {
   const [support, setSupport] = useState<SpeechSupport>("checking");
   const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [speaking, setSpeaking] = useState(false);
+  // Текущее проигрывание файлов: новый play() или размонтирование его обрывают.
+  const stopFiles = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => stopFiles.current?.(), []);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -56,15 +62,42 @@ export function useVerbSpeech() {
 
   /**
    * Проговаривает текст. Вызывать из обработчика нажатия: браузеры не дают
-   * странице говорить без жеста пользователя. audioUrl — задел под файлы.
+   * странице говорить без жеста пользователя. audioUrls — файлы озвучки
+   * по порядку, если есть: тогда text не нужен.
    */
   const play = useCallback(
-    (text: string, audioUrl?: string | null) => {
-      if (audioUrl) {
-        const audio = new Audio(audioUrl);
+    (text: string, audioUrls?: readonly string[] | null) => {
+      stopFiles.current?.();
+      stopFiles.current = null;
+      if (audioUrls?.length) {
+        window.speechSynthesis?.cancel();
+        // Грузим все файлы сразу, чтобы между формами не было задержки сети.
+        const audios = audioUrls.map((url) => {
+          const audio = new Audio(url);
+          audio.preload = "auto";
+          return audio;
+        });
+        let timer: number | undefined;
+        let stopped = false;
+        const stop = () => {
+          stopped = true;
+          window.clearTimeout(timer);
+          audios.forEach((audio) => audio.pause());
+          setSpeaking(false);
+        };
+        const next = (i: number) => {
+          if (stopped) return;
+          if (i >= audios.length) return stop();
+          const audio = audios[i];
+          audio.onended = () => {
+            timer = window.setTimeout(() => next(i + 1), FORM_PAUSE_MS);
+          };
+          audio.onerror = stop;
+          audio.play().catch(stop);
+        };
+        stopFiles.current = stop;
         setSpeaking(true);
-        audio.onended = audio.onerror = () => setSpeaking(false);
-        audio.play().catch(() => setSpeaking(false));
+        next(0);
         return;
       }
       if (!voice) return;

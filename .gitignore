@@ -48,3 +48,6 @@ next-env.d.ts
 
 # данные Postgres из docker-compose (каталог принадлежит root)
 /.data
+# storybook
+/storybook-static
+*storybook.log

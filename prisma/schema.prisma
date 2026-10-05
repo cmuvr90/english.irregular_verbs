@@ -28,6 +28,7 @@ model User {
   accounts        Account[]
   trainerProgress TrainerVerbProgress[]
   trainerMistakes TrainerMistake[]
+  activityDays    UserActivityDay[]
 
   sentencesCreated VerbSentence[] @relation("SentenceAuthor")
   sentencesUpdated VerbSentence[] @relation("SentenceEditor")
@@ -100,6 +101,12 @@ model Verb {
   /// Картинка для тренажёра «Подбери глагол к картинке» — публичный URL
   /// в Vercel Blob. NULL — картинки нет, в этот тренажёр глагол не попадает.
   imageUrl    String?  @map("image_url")
+  /// Озвучка форм для тренажёра «Выбери, что слышишь» — по файлу на форму,
+  /// публичные URL в Vercel Blob. Пока нет хотя бы одного из трёх, тройку
+  /// проговаривает синтез браузера.
+  audio1Url   String?  @map("audio_1_url")
+  audio2Url   String?  @map("audio_2_url")
+  audio3Url   String?  @map("audio_3_url")
   createdAt   DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt   DateTime @updatedAt @db.Timestamptz(3) @map("updated_at")
 
@@ -299,4 +306,20 @@ model VerbSentence {
   // Автор фильтрует свои черновики в админке.
   @@index([createdById])
   @@map("verb_sentences")
+}
+
+/// Активность студента по дням: сколько ответов он дал в тренажёрах.
+/// trainer_verb_progress хранит только последнее состояние глагола, а серии
+/// дней и цели дня нужна история — она живёт здесь, по строке на день.
+model UserActivityDay {
+  userId  String   @map("user_id")
+  /// Календарный день в часовом поясе студента на момент ответа.
+  day     DateTime @db.Date
+  answers Int      @default(0)
+  correct Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
+  @@map("user_activity_days")
 }
